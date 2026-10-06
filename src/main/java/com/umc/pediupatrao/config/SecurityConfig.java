@@ -52,15 +52,18 @@ public class SecurityConfig {
                         .requestMatchers("/api/auditoria/**", "/auditoria/**")
                                 .hasAnyRole("ADMIN", "GERENTE")
 
-                        // Rotas futuras de desconto/cancelamento são exclusivas do GERENTE.
+                        // Desconto e cancelamento são exclusivos do GERENTE.
                         .requestMatchers("/api/pedidos/*/desconto", "/api/pedidos/*/cancelamento",
                                 "/api/pedidos/*/cancelar").hasRole("GERENTE")
+                        .requestMatchers("/pedidos/novo").hasAnyRole("GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.GET, "/api/pedidos", "/api/pedidos/**", "/pedidos", "/pedidos/**")
                                 .hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.POST, "/api/pedidos", "/api/pedidos/**")
                                 .hasAnyRole("GERENTE", "ATENDENTE")
                         .requestMatchers("/api/pedidos/**", "/pedidos/**").hasRole("GERENTE")
 
+                        .requestMatchers(HttpMethod.GET, "/clientes/novo", "/clientes/editar/**")
+                                .hasRole("ATENDENTE")
                         .requestMatchers(HttpMethod.GET, "/api/clientes", "/api/clientes/**", "/clientes", "/clientes/**")
                                 .hasAnyRole("GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.POST, "/api/clientes", "/api/clientes/**", "/clientes/**")

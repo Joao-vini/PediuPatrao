@@ -13,8 +13,9 @@
             <div th:replace="~{fragments/sidebar :: sidebar}"></div>
         </aside>
 
-        <div class="container mt-5">
+        <div class="container mt-5" th:fragment="content">
             <h1 class="mb-4">Gestão de Produtos</h1>
+            <div class="alert alert-success" th:if="${sucesso}" role="alert" th:text="${sucesso}"></div>
 
             <!-- Botão para abrir o formulário -->
             <button class="btn btn-primary mb-3" data-bs-toggle="collapse" data-bs-target="#formularioProduto">
@@ -24,7 +25,7 @@
             <!-- Formulário de Cadastro -->
             <div class="collapse" id="formularioProduto">
                 <div class="card card-body">
-                    <form th:action="@{/api/produtos}" method="post" id="produtoForm">
+                    <form th:action="@{/produtos}" method="post" id="produtoForm">
                         <div class="mb-3">
                             <label for="nome" class="form-label">Nome do Produto</label>
                             <input type="text" id="nome" name="nome" class="form-control" placeholder="Nome do Produto" required>
@@ -68,7 +69,6 @@
                         <th>Tipo</th>
                         <th>Preço</th>
                         <th>Ativo</th>
-                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -79,13 +79,6 @@
                         <td th:text="${produto.tipo}"></td>
                         <td th:text="${#numbers.formatDecimal(produto.preco, 1, 'COMMA', 2, 'POINT')}"></td>
                         <td th:text="${produto.ativo ? 'Sim' : 'Não'}">Sim</td>
-                        <td>
-                            <a th:href="@{/api/produtos/{id}(id=${produto.id})}" class="btn btn-warning btn-sm">Editar</a>
-                            <a th:href="@{/api/produtos/{id}(id=${produto.id})}" class="btn btn-danger btn-sm" 
-                               onclick="return confirm('Tem certeza que deseja excluir este produto?');">
-                                Excluir
-                            </a>
-                        </td>
                     </tr>
                 </tbody>
             </table>

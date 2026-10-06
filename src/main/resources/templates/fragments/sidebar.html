@@ -31,28 +31,18 @@
                         </a>
                         <ul class="nav flex-column submenu">
                             <li class="nav-item">
-                                <a class="nav-link" th:href="@{/funcionarios}">
-                                    <i class="bi bi-person-walking"></i><span class="d-none d-md-inline">&nbsp;Funcionários</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" th:href="@{/entregadores}">
-                                    <i class="bi bi-bicycle"></i><span class="d-none d-md-inline">&nbsp;Entregadores</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" th:href="@{/horarios}">
-                                    <i class="bi bi-clock"></i><span class="d-none d-md-inline">&nbsp;Horário de Funcionamento</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link" th:href="@{/produtos}">
                                     <i class="bi bi-boxes"></i><span class="d-none d-md-inline">&nbsp;Produtos</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" th:if="${podeAdministrarUsuarios}">
                                 <a class="nav-link" th:href="@{/usuarios}">
                                     <i class="bi bi-people-fill"></i><span class="d-none d-md-inline">&nbsp;Usuários</span>
+                                </a>
+                            </li>
+                            <li class="nav-item" th:if="${podeVisualizarAuditoria}">
+                                <a class="nav-link" th:href="@{/auditoria}">
+                                    <i class="bi bi-journal-text"></i><span class="d-none d-md-inline">&nbsp;Auditoria</span>
                                 </a>
                             </li>
                     </li>

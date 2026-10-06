@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -21,21 +22,22 @@ public class ClienteController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> excluirCliente(@PathVariable String id) {
-        clienteService.excluir(id);
+    public ResponseEntity<Void> excluirCliente(@PathVariable String id, Authentication authentication) {
+        clienteService.excluir(id, authentication);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping
-    public ResponseEntity<Cliente> salvarCliente(@RequestBody Cliente cliente) {
-        Cliente salvo = clienteService.salvar(cliente);
+    public ResponseEntity<Cliente> salvarCliente(@RequestBody Cliente cliente, Authentication authentication) {
+        Cliente salvo = clienteService.salvar(cliente, authentication);
         return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cliente> atualizarCliente(@PathVariable String id, @RequestBody Cliente cliente) {
+    public ResponseEntity<Cliente> atualizarCliente(@PathVariable String id, @RequestBody Cliente cliente,
+                                                   Authentication authentication) {
         cliente.setId(id);
-        Cliente atualizado = clienteService.salvar(cliente);
+        Cliente atualizado = clienteService.salvar(cliente, authentication);
         return ResponseEntity.ok(atualizado);
     }
 }

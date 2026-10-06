@@ -9,7 +9,7 @@
         <h2 class="fw-bold mb-0">
             <i class="bi bi-person-raised-hand me-2 text-primary"></i>Clientes
         </h2>
-        <a href="/clientes/novo" class="btn btn-primary">
+        <a th:if="${podeGerenciarClientes}" href="/clientes/novo" class="btn btn-primary">
             <i class="bi bi-plus-lg me-1"></i> Novo Cliente
         </a>
     </div>
@@ -23,10 +23,10 @@
                         <th>Nome</th>
                         <th>Telefone</th>
                         <th>Endereço</th>
-                        <th class="text-end pe-4">Ações</th>
+                        <th class="text-end pe-4" th:if="${podeGerenciarClientes}">Ações</th>
                     </tr>
                 </thead>
-                <tbody id="clientes-tabela">
+                <tbody id="clientes-tabela" th:data-pode-editar="${podeGerenciarClientes}">
                     <!-- Linhas carregadas via JavaScript -->
                 </tbody>
             </table>
@@ -36,6 +36,7 @@
     <script>
         const API_URL = '/api/clientes';
         const tabelaClientes = document.getElementById('clientes-tabela');
+        const podeEditarClientes = tabelaClientes.dataset.podeEditar === 'true';
 
         function formatarEndereco(cliente) {
             const partes = [
@@ -58,7 +59,7 @@
             if (clientes.length === 0) {
                 tabelaClientes.innerHTML = `
                     <tr>
-                        <td colspan="4" class="text-center text-muted py-5">
+                        <td colspan="${podeEditarClientes ? 4 : 3}" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                             Nenhum cliente cadastrado.
                         </td>
@@ -72,29 +73,14 @@
                     <td>${cliente.nome || '—'}</td>
                     <td>${cliente.telefone || '—'}</td>
                     <td>${formatarEndereco(cliente)}</td>
-                    <td class="text-end pe-4">
+                    ${podeEditarClientes ? `<td class="text-end pe-4">
                         <a href="/clientes/editar/${cliente.id}" class="btn btn-sm btn-outline-primary me-1">
                             <i class="bi bi-pencil-fill"></i> Editar
                         </a>
-                        <button class="btn btn-sm btn-outline-danger" onclick="excluirCliente('${cliente.id}')">
-                            <i class="bi bi-trash-fill"></i> Excluir
-                        </button>
-                    </td>
+                    </td>` : ''}
                 `;
                 tabelaClientes.appendChild(row);
             });
-        }
-
-        async function excluirCliente(id) {
-            if (confirm('Tem certeza que deseja excluir este cliente?')) {
-                const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-                if (response.ok) {
-                    alert('Cliente excluído com sucesso!');
-                    carregarClientes();
-                } else {
-                    alert('Erro ao excluir o cliente.');
-                }
-            }
         }
 
         carregarClientes();

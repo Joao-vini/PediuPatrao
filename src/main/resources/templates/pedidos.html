@@ -11,6 +11,9 @@
         <h2 class="fw-bold mb-0">
             <i class="bi bi-bag me-2 text-primary"></i>Pedidos
         </h2>
+        <a th:if="${podeCriarPedido}" th:href="@{/pedidos/novo}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Novo Pedido
+        </a>
     </div>
 
     <!-- Mensagens de feedback -->
@@ -33,16 +36,19 @@
                     <tr>
                         <th class="ps-4">ID</th>
                         <th>Cliente ID</th>
-                        <th>Tipo de Pizza</th>
-                        <th>Sabor</th>
-                        <th>Quantidade</th>
+                        <th>Itens</th>
+                        <th>Desconto</th>
+                        <th>Valor total</th>
+                        <th>Responsável</th>
+                        <th>Data e hora</th>
                         <th>Status</th>
+                        <th th:if="${podeGerenciarPedidos}">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- Lista vazia -->
                     <tr th:if="${#lists.isEmpty(pedidos)}">
-                        <td colspan="6" class="text-center text-muted py-5">
+                        <td th:colspan="${podeGerenciarPedidos ? 9 : 8}" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                             Nenhum pedido encontrado.
                         </td>
@@ -51,16 +57,60 @@
                     <tr th:each="pedido : ${pedidos}">
                         <td class="ps-4 text-muted" th:text="${pedido.id}"></td>
                         <td th:text="${pedido.clienteId}"></td>
-                        <td th:text="${pedido.tipoPizza}"></td>
-                        <td th:text="${pedido.sabor}"></td>
-                        <td th:text="${pedido.quantidade}"></td>
+                        <td>
+                            <span th:if="${pedido.itens == null or #lists.isEmpty(pedido.itens)}"
+                                  th:text="|${pedido.quantidade}x ${pedido.tipoPizza} ${pedido.sabor}|"></span>
+                            <ul th:if="${pedido.itens != null and !#lists.isEmpty(pedido.itens)}" class="mb-0 ps-3">
+                                <li th:each="item : ${pedido.itens}">
+                                    <span th:text="|${item.quantidade}x ${item.nomeProduto} (R$ ${item.precoUnitario})|"></span>
+                                </li>
+                            </ul>
+                        </td>
+                        <td>
+                            <span th:if="${pedido.descontoPercentual != null}"
+                                  th:text="|${pedido.descontoPercentual}% (R$ ${pedido.valorDesconto})|"></span>
+                            <span th:if="${pedido.descontoPercentual == null}">—</span>
+                        </td>
+                        <td th:text="${pedido.valorTotal != null ? 'R$ ' + pedido.valorTotal : '—'}"></td>
+                        <td th:text="${pedido.usuarioResponsavelUsername != null ? pedido.usuarioResponsavelUsername : '—'}"></td>
+                        <td th:text="${pedido.dataHora != null ? pedido.dataHora : '—'}"></td>
                         <td>
                             <span class="badge"
                                   th:classappend="${pedido.status == 'ENTREGUE'} ? 'bg-success' :
                                                   (${pedido.status == 'CANCELADO'} ? 'bg-danger' :
-                                                  (${pedido.status == 'EM_PREPARO'} ? 'bg-warning text-dark' : 'bg-secondary'))"
-                                  th:text="${pedido.status}">
+                                                  (${pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO'} ? 'bg-warning text-dark' : 'bg-secondary'))"
+                                  th:text="${pedido.status == 'EM_PREPARACAO' ? 'EM PREPARAÇÃO' :
+                                                   (pedido.status == 'SAIU_PARA_ENTREGA' ? 'SAIU PARA ENTREGA' : pedido.status)}">
                             </span>
+                        </td>
+                        <td th:if="${podeGerenciarPedidos}" class="text-end">
+                            <details th:if="${pedido.status != 'CANCELADO' and pedido.status != 'FINALIZADO'}">
+                                <summary class="btn btn-sm btn-outline-primary">Gerenciar</summary>
+                                <div class="d-flex flex-column gap-2 mt-2" style="min-width: 230px;">
+                                    <form th:if="${pedido.status == 'RECEBIDO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO' or pedido.status == 'PRONTO' or pedido.status == 'SAIU_PARA_ENTREGA' or pedido.status == 'RETIRADO'}"
+                                          th:action="@{/pedidos/{id}/status(id=${pedido.id})}" method="post" class="d-flex gap-1">
+                                        <select name="status" class="form-select form-select-sm" required>
+                                            <option th:if="${pedido.status == 'RECEBIDO'}" value="EM_PREPARACAO">EM PREPARAÇÃO</option>
+                                            <option th:if="${pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO'}" value="PRONTO">PRONTO</option>
+                                            <option th:if="${pedido.status == 'PRONTO'}" value="SAIU_PARA_ENTREGA">SAIU PARA ENTREGA</option>
+                                            <option th:if="${pedido.status == 'PRONTO'}" value="RETIRADO">RETIRADO</option>
+                                            <option th:if="${pedido.status == 'SAIU_PARA_ENTREGA' or pedido.status == 'RETIRADO'}" value="FINALIZADO">FINALIZADO</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-primary">Avançar</button>
+                                    </form>
+                                    <form th:if="${pedido.status == 'RECEBIDO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO' or pedido.status == 'PRONTO'}"
+                                          th:action="@{/pedidos/{id}/desconto(id=${pedido.id})}" method="post" class="input-group input-group-sm">
+                                        <input type="number" name="percentual" class="form-control" min="0" max="20" step="0.01" placeholder="Desconto %" required>
+                                        <button type="submit" class="btn btn-outline-success">Aplicar</button>
+                                    </form>
+                                    <form th:if="${pedido.status == 'RECEBIDO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO' or pedido.status == 'PRONTO'}"
+                                          th:action="@{/pedidos/{id}/cancelamento(id=${pedido.id})}" method="post" class="d-flex flex-column gap-1">
+                                        <input type="text" name="justificativa" class="form-control form-control-sm"
+                                               placeholder="Justificativa do cancelamento" required maxlength="500">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar pedido</button>
+                                    </form>
+                                </div>
+                            </details>
                         </td>
                     </tr>
                 </tbody>

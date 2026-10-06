@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Auditoria</title>
+</head>
+<body>
+
+<div th:fragment="content">
+    <div class="d-flex align-items-center mb-4">
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-journal-text me-2 text-primary"></i>Auditoria
+        </h2>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                    <tr>
+                        <th>Data e hora</th>
+                        <th>Usuário</th>
+                        <th>Perfil</th>
+                        <th>Operação</th>
+                        <th>Entidade</th>
+                        <th>ID</th>
+                        <th>Campos / valores anteriores</th>
+                        <th>Valores novos</th>
+                        <th>Justificativa</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(auditorias)}">
+                        <td colspan="9" class="text-center text-muted py-5">Nenhum evento de auditoria registrado.</td>
+                    </tr>
+                    <tr th:each="registro : ${auditorias}">
+                        <td th:text="${registro.dataHora}"></td>
+                        <td th:text="${registro.usuario}"></td>
+                        <td th:text="${registro.perfil}"></td>
+                        <td th:text="${registro.operacao}"></td>
+                        <td th:text="${registro.entidade}"></td>
+                        <td th:text="${registro.entidadeId}"></td>
+                        <td>
+                            <div th:each="valor : ${registro.valoresAnteriores}"
+                                 th:text="|${valor.key}: ${valor.value}|"></div>
+                        </td>
+                        <td>
+                            <div th:each="valor : ${registro.valoresNovos}"
+                                 th:text="|${valor.key}: ${valor.value}|"></div>
+                        </td>
+                        <td th:text="${registro.justificativa ?: '—'}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

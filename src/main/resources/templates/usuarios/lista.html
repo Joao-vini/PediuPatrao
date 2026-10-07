@@ -37,13 +37,14 @@
                         <th scope="col" class="ps-4">#</th>
                         <th scope="col">Username</th>
                         <th scope="col">Role</th>
+                        <th scope="col">Status</th>
                         <th scope="col" class="text-end pe-4">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- Lista vazia -->
                     <tr th:if="${#lists.isEmpty(usuarios)}">
-                        <td colspan="4" class="text-center text-muted py-5">
+                        <td colspan="5" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                             Nenhum usuário cadastrado.
                         </td>
@@ -65,14 +66,36 @@
                                   th:text="${usuario.role}">
                             </span>
                         </td>
+                        <td>
+                            <span class="badge" th:classappend="${usuario.ativo} ? 'bg-success' : 'bg-secondary'"
+                                  th:text="${usuario.ativo} ? 'ATIVO' : 'INATIVO'"></span>
+                        </td>
                         <td class="text-end pe-4">
                             <a th:href="@{/usuarios/editar/{id}(id=${usuario.id})}"
                                class="btn btn-sm btn-outline-primary me-1">
                                 <i class="bi bi-pencil-fill"></i> Editar
                             </a>
-                            <form th:action="@{/usuarios/deletar/{id}(id=${usuario.id})}"
+                            <form th:if="${usuario.ativo and usuario.username != usuarioLogado}"
+                                  th:action="@{/usuarios/{id}/status(id=${usuario.id})}"
                                   method="post" class="d-inline"
-                                  onsubmit="return confirm('Deseja realmente excluir este usuário?')">
+                                  onsubmit="return confirm('Tem certeza que deseja desativar este usuário?')">
+                                <input type="hidden" name="ativo" value="false">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-person-dash-fill"></i> Desativar
+                                </button>
+                            </form>
+                            <form th:if="${!usuario.ativo}"
+                                  th:action="@{/usuarios/{id}/status(id=${usuario.id})}"
+                                  method="post" class="d-inline">
+                                <input type="hidden" name="ativo" value="true">
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-person-check-fill"></i> Ativar
+                                </button>
+                            </form>
+                            <form th:if="${usuario.username != usuarioLogado}"
+                                  th:action="@{/usuarios/{id}/excluir(id=${usuario.id})}"
+                                  method="post" class="d-inline"
+                                  onsubmit="return confirm('Tem certeza que deseja excluir este usuário? Esta ação não poderá ser desfeita.')">
                                 <button type="submit" class="btn btn-sm btn-outline-danger">
                                     <i class="bi bi-trash-fill"></i> Excluir
                                 </button>

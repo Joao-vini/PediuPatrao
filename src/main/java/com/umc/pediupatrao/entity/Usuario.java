@@ -10,6 +10,7 @@ public class Usuario {
     private String username; // Nome de usuário para login
     private String password; // Senha criptografada
     private String role;     // Papel do usuário, como ADMIN ou USER
+    private Boolean ativo;
 
     public String getId() {
         return id;
@@ -41,6 +42,15 @@ public class Usuario {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    // Documentos antigos sem este campo continuam ativos.
+    public boolean isAtivo() {
+        return ativo == null || ativo;
+    }
+
+    public void setAtivo(Boolean ativo) {
+        this.ativo = ativo;
     }
     
     

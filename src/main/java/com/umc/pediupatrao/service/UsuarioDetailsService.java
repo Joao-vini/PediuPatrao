@@ -25,7 +25,7 @@ public class UsuarioDetailsService implements UserDetailsService {
         var usuario = usuarioRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
 
-        if (!PERFIS_VALIDOS.contains(usuario.getRole())) {
+        if (usuario.getRole() == null || !PERFIS_VALIDOS.contains(usuario.getRole())) {
             throw new UsernameNotFoundException("Perfil do usuário inválido");
         }
 
@@ -33,6 +33,7 @@ public class UsuarioDetailsService implements UserDetailsService {
                 .username(usuario.getUsername())
                 .password(usuario.getPassword())
                 .roles(usuario.getRole())
+                .disabled(!usuario.isAtivo())
                 .build();
     }
 }

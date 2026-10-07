@@ -12,6 +12,49 @@
         </h2>
     </div>
 
+    <div class="alert alert-danger" th:if="${erro}" th:text="${erro}" role="alert"></div>
+    <form th:action="@{/auditoria}" method="get" class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="usuarioFiltro" class="form-label">Usuário</label>
+                    <input id="usuarioFiltro" name="usuario" th:value="${usuarioFiltro}" class="form-control" placeholder="Nome do usuário">
+                </div>
+                <div class="col-md-4">
+                    <label for="operacaoFiltro" class="form-label">Operação</label>
+                    <select id="operacaoFiltro" name="operacao" class="form-select">
+                        <option value="">Todas as operações</option>
+                        <option th:each="opcao : ${operacoes}" th:value="${opcao.key}" th:text="${opcao.value}"
+                                th:selected="${opcao.key == operacaoFiltro}"></option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="entidadeFiltro" class="form-label">Entidade</label>
+                    <select id="entidadeFiltro" name="entidade" class="form-select">
+                        <option value="">Todas as entidades</option>
+                        <option value="CLIENTE" th:selected="${entidadeFiltro == 'CLIENTE'}">Cliente</option>
+                        <option value="PEDIDO" th:selected="${entidadeFiltro == 'PEDIDO'}">Pedido</option>
+                        <option value="USUARIO" th:selected="${entidadeFiltro == 'USUARIO'}">Usuário</option>
+                        <option value="PRODUTO" th:selected="${entidadeFiltro == 'PRODUTO'}">Produto</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="dataInicial" class="form-label">Data inicial</label>
+                    <input type="date" id="dataInicial" name="dataInicial" th:value="${dataInicial}" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label for="dataFinal" class="form-label">Data final</label>
+                    <input type="date" id="dataFinal" name="dataFinal" th:value="${dataFinal}" class="form-control">
+                </div>
+                <div class="col-md-4 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a th:href="@{/auditoria}" class="btn btn-outline-secondary">Limpar filtros</a>
+                </div>
+            </div>
+            <div class="form-text mt-3">Datas e horários no fuso de Brasília (America/Sao_Paulo). A data final inclui o dia inteiro.</div>
+        </div>
+    </form>
+
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -23,36 +66,87 @@
                         <th>Perfil</th>
                         <th>Operação</th>
                         <th>Entidade</th>
-                        <th>ID</th>
-                        <th>Campos / valores anteriores</th>
-                        <th>Valores novos</th>
                         <th>Justificativa</th>
+                        <th>Ação</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr th:if="${#lists.isEmpty(auditorias)}">
-                        <td colspan="9" class="text-center text-muted py-5">Nenhum evento de auditoria registrado.</td>
+                        <td colspan="7" class="text-center text-muted py-5">Nenhum evento encontrado para esta consulta.</td>
                     </tr>
-                    <tr th:each="registro : ${auditorias}">
-                        <td th:text="${registro.dataHora}"></td>
+                    <th:block th:each="registro, stat : ${auditorias}">
+                    <tr>
+                        <td class="text-nowrap" th:text="${registro.dataHoraFormatada}"></td>
                         <td th:text="${registro.usuario}"></td>
                         <td th:text="${registro.perfil}"></td>
-                        <td th:text="${registro.operacao}"></td>
-                        <td th:text="${registro.entidade}"></td>
-                        <td th:text="${registro.entidadeId}"></td>
+                        <td th:text="${registro.operacaoDescricao}"></td>
+                        <td th:text="${registro.entidadeDescricao}"></td>
+                        <td class="text-break"><div style="max-width: 18rem; max-height: 4.5rem; overflow: auto" th:text="${registro.justificativa ?: '—'}"></div></td>
                         <td>
-                            <div th:each="valor : ${registro.valoresAnteriores}"
-                                 th:text="|${valor.key}: ${valor.value}|"></div>
+                            <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" data-bs-toggle="collapse"
+                                    th:data-bs-target="|#detalhes-${stat.index}|" th:aria-controls="|detalhes-${stat.index}|" aria-expanded="false">Ver detalhes</button>
                         </td>
-                        <td>
-                            <div th:each="valor : ${registro.valoresNovos}"
-                                 th:text="|${valor.key}: ${valor.value}|"></div>
-                        </td>
-                        <td th:text="${registro.justificativa ?: '—'}"></td>
                     </tr>
+                    <tr>
+                        <td colspan="7" class="p-0 border-0">
+                            <div class="collapse" th:id="|detalhes-${stat.index}|">
+                                <div class="p-4 bg-light text-break">
+                                    <h3 class="h5 mb-3">Detalhes do evento</h3>
+                                    <dl class="row mb-3">
+                                        <dt class="col-sm-3">ID do evento</dt><dd class="col-sm-9" th:text="${registro.id}"></dd>
+                                        <dt class="col-sm-3">Data e hora</dt><dd class="col-sm-9" th:text="${registro.dataHoraFormatada}"></dd>
+                                        <dt class="col-sm-3">Usuário / perfil</dt><dd class="col-sm-9" th:text="|${registro.usuario} / ${registro.perfil}|"></dd>
+                                        <dt class="col-sm-3">Operação</dt><dd class="col-sm-9" th:text="${registro.operacaoDescricao}"></dd>
+                                        <dt class="col-sm-3">Entidade</dt><dd class="col-sm-9" th:text="${registro.entidadeDescricao}"></dd>
+                                        <dt class="col-sm-3">ID da entidade</dt><dd class="col-sm-9" th:text="${registro.entidadeId ?: '—'}"></dd>
+                                        <dt class="col-sm-3">Operador</dt><dd class="col-sm-9" th:text="${registro.operador ?: '—'}"></dd>
+                                        <th:block th:if="${registro.gerenteAutorizador}">
+                                            <dt class="col-sm-3">Gerente autorizador</dt><dd class="col-sm-9" th:text="${registro.gerenteAutorizador}"></dd>
+                                        </th:block>
+                                        <dt class="col-sm-3">Campos alterados</dt><dd class="col-sm-9" th:text="${#lists.isEmpty(registro.camposAlterados) ? '—' : #strings.listJoin(registro.camposAlterados, ', ')}"></dd>
+                                        <dt class="col-sm-3">Justificativa</dt><dd class="col-sm-9" style="white-space: pre-wrap" th:text="${registro.justificativa ?: '—'}"></dd>
+                                    </dl>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <h4 class="h6">Campos / valores anteriores</h4>
+                                            <p th:if="${#maps.isEmpty(registro.valoresAnteriores)}" class="text-muted">Nenhum valor registrado.</p>
+                                            <dl class="mb-0" th:each="valor : ${registro.valoresAnteriores}">
+                                                <dt th:text="${valor.key}"></dt><dd style="white-space: pre-wrap" th:text="${valor.value}"></dd>
+                                            </dl>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h4 class="h6">Valores novos</h4>
+                                            <p th:if="${#maps.isEmpty(registro.valoresNovos)}" class="text-muted">Nenhum valor registrado.</p>
+                                            <dl class="mb-0" th:each="valor : ${registro.valoresNovos}">
+                                                <dt th:text="${valor.key}"></dt><dd style="white-space: pre-wrap" th:text="${valor.value}"></dd>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    </th:block>
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <span class="text-muted small" th:text="|${paginaAuditoria.totalElements} evento(s) · Página ${paginaAuditoria.number + 1} de ${paginaAuditoria.totalPages > 0 ? paginaAuditoria.totalPages : 1}|"></span>
+            <nav aria-label="Paginação da auditoria" th:if="${paginaAuditoria.totalPages > 1}">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${!paginaAuditoria.hasPrevious()} ? 'disabled'">
+                        <a th:if="${paginaAuditoria.hasPrevious()}" class="page-link"
+                           th:href="@{/auditoria(pagina=${paginaAuditoria.number - 1},usuario=${usuarioFiltro},operacao=${operacaoFiltro},entidade=${entidadeFiltro},dataInicial=${dataInicial},dataFinal=${dataFinal})}">Anterior</a>
+                        <span th:unless="${paginaAuditoria.hasPrevious()}" class="page-link">Anterior</span>
+                    </li>
+                    <li class="page-item" th:classappend="${!paginaAuditoria.hasNext()} ? 'disabled'">
+                        <a th:if="${paginaAuditoria.hasNext()}" class="page-link"
+                           th:href="@{/auditoria(pagina=${paginaAuditoria.number + 1},usuario=${usuarioFiltro},operacao=${operacaoFiltro},entidade=${entidadeFiltro},dataInicial=${dataInicial},dataFinal=${dataFinal})}">Próxima</a>
+                        <span th:unless="${paginaAuditoria.hasNext()}" class="page-link">Próxima</span>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
 </div>

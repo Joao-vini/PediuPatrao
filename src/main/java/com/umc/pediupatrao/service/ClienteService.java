@@ -5,6 +5,8 @@ import com.umc.pediupatrao.repository.ClienteRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Optional;
 import java.util.LinkedHashMap;
@@ -19,8 +21,8 @@ public class ClienteService {
     @Autowired
     private AuditoriaService auditoriaService;
 
-    public Cliente novoCliente(Cliente cliente) {
-        return salvar(cliente, null);
+    public Cliente novoCliente(Cliente cliente, Authentication authentication) {
+        return salvar(cliente, authentication);
     }
 
     public List<Cliente> listarClientes() {
@@ -29,10 +31,8 @@ public class ClienteService {
 
     // Método para excluir cliente
     public void excluir(String id, Authentication authentication) {
-        Cliente existente = clienteRepository.findById(id).orElseThrow();
-        clienteRepository.deleteById(id);
-        auditoriaService.registrar(authentication, "EXCLUSAO", "CLIENTE", id,
-                snapshot(existente), Map.of(), null);
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "A exclusão de clientes não é autorizada pelo RF01.");
     }
 
     public Optional<Cliente> buscarPorId(String id) {
@@ -41,6 +41,12 @@ public class ClienteService {
 
     // Método para salvar um novo cliente ou atualizar um cliente existente
     public Cliente salvar(Cliente cliente, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getAuthorities().stream()
+                    .noneMatch(authority -> "ROLE_ATENDENTE".equals(authority.getAuthority()))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Somente ATENDENTE pode cadastrar ou atualizar clientes.");
+        }
         // Se o cliente não tem ID (novo cliente), salva como novo
         if (cliente.getId() == null) {
             Cliente salvo = clienteRepository.save(cliente);
@@ -52,8 +58,8 @@ public class ClienteService {
             // Verifica se o cliente existe antes de atualizar
             if (clienteRepository.existsById(cliente.getId())) {
                 Cliente anterior = clienteRepository.findById(cliente.getId()).orElseThrow();
-                Cliente salvo = clienteRepository.save(cliente);
                 Map<String, String> valoresAnteriores = snapshot(anterior);
+                Cliente salvo = clienteRepository.save(cliente);
                 Map<String, String> valoresNovos = snapshot(salvo);
                 valoresAnteriores.keySet().removeIf(campo -> valoresAnteriores.get(campo)
                         .equals(valoresNovos.get(campo)));

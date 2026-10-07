@@ -49,12 +49,25 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/css/**", "/dist/**", "/plugins/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/api/usuarios/**", "/usuarios/**").hasRole("ADMIN")
-                        .requestMatchers("/api/auditoria/**", "/auditoria/**")
+                        .requestMatchers("/produtos", "/produtos/**", "/api/produtos", "/api/produtos/**")
                                 .hasAnyRole("ADMIN", "GERENTE")
+                        .requestMatchers(HttpMethod.GET, "/api/auditoria", "/api/auditoria/**", "/auditoria", "/auditoria/**")
+                                .hasAnyRole("ADMIN", "GERENTE")
+                        .requestMatchers("/api/auditoria", "/api/auditoria/**", "/auditoria", "/auditoria/**")
+                                .denyAll()
 
-                        // Desconto e cancelamento são exclusivos do GERENTE.
-                        .requestMatchers("/api/pedidos/*/desconto", "/api/pedidos/*/cancelamento",
-                                "/api/pedidos/*/cancelar").hasRole("GERENTE")
+                        // Descontos continuam exclusivos do GERENTE.
+                        .requestMatchers("/api/pedidos/*/desconto", "/api/pedidos/*/cancelar", "/pedidos/*/desconto")
+                                .hasRole("GERENTE")
+                        // RF04: a sessão também deve pertencer a GERENTE, mesmo com credenciais de autorização.
+                        .requestMatchers(HttpMethod.POST, "/pedidos/*/cancelamento", "/api/pedidos/*/cancelamento")
+                                .hasRole("GERENTE")
+                        .requestMatchers(HttpMethod.POST, "/pedidos/autorizar-desconto")
+                                .hasRole("GERENTE")
+                        .requestMatchers(HttpMethod.POST, "/pedidos/*/status")
+                                .hasAnyRole("GERENTE", "ATENDENTE")
+                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/*/status")
+                                .hasAnyRole("GERENTE", "ATENDENTE")
                         .requestMatchers("/pedidos/novo").hasAnyRole("GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.GET, "/api/pedidos", "/api/pedidos/**", "/pedidos", "/pedidos/**")
                                 .hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")

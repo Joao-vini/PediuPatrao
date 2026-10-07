@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProdutoRepository extends MongoRepository<Produto, String> {
+    java.util.List<Produto> findByAtivoTrue();
 }

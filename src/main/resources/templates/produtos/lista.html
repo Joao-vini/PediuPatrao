@@ -1,88 +1,52 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-    <head>
-        <meta charset="UTF-8">
-        <title>Gerenciar Produtos</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-        <link rel="stylesheet" th:href="@{/css/style.css}">
-    </head>
-    <body>
-        <!-- Sidebar incluído como fragmento -->
-        <aside>
-            <div th:replace="~{fragments/sidebar :: sidebar}"></div>
-        </aside>
-
-        <div class="container mt-5" th:fragment="content">
-            <h1 class="mb-4">Gestão de Produtos</h1>
-            <div class="alert alert-success" th:if="${sucesso}" role="alert" th:text="${sucesso}"></div>
-
-            <!-- Botão para abrir o formulário -->
-            <button class="btn btn-primary mb-3" data-bs-toggle="collapse" data-bs-target="#formularioProduto">
-                Novo Produto
-            </button>
-
-            <!-- Formulário de Cadastro -->
-            <div class="collapse" id="formularioProduto">
-                <div class="card card-body">
-                    <form th:action="@{/produtos}" method="post" id="produtoForm">
-                        <div class="mb-3">
-                            <label for="nome" class="form-label">Nome do Produto</label>
-                            <input type="text" id="nome" name="nome" class="form-control" placeholder="Nome do Produto" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="tipo" class="form-label">Tipo do Produto</label>
-                            <select id="tipo" name="tipo" class="form-select" required>
-                                <option value="" disabled selected>Selecione o Tipo</option>
-                                <option value="Pizza">Pizza</option>
-                                <option value="Lanche">Lanche</option>
-                                <option value="Bebida">Bebida</option>
-                                <option value="Porção">Porção</option>
-                                <option value="Adicional">Adicional</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="preco" class="form-label">Preço</label>
-                            <input type="number" id="preco" name="preco" class="form-control" placeholder="Preço (R$)" step="0.01" required>
-                        </div>
-
-                        <div class="form-check mb-3">
-                            <input type="checkbox" id="ativo" name="ativo" class="form-check-input">
-                            <label for="ativo" class="form-check-label">Produto Ativo</label>
-                        </div>
-
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-success">Salvar</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Listagem de Produtos -->
-            <table class="table table-bordered table-striped mt-3">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>Nome</th>
-                        <th>Tipo</th>
-                        <th>Preço</th>
-                        <th>Ativo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Loop para listar os produtos -->
-                    <tr th:each="produto : ${produtos}">
-                        <td th:text="${produto.id}"></td>
-                        <td th:text="${produto.nome}"></td>
-                        <td th:text="${produto.tipo}"></td>
-                        <td th:text="${#numbers.formatDecimal(produto.preco, 1, 'COMMA', 2, 'POINT')}"></td>
-                        <td th:text="${produto.ativo ? 'Sim' : 'Não'}">Sim</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <script th:src="@{/js/script.js}"></script>
-    </body>
+<body>
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">Gestão de Produtos</h2>
+        <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formularioProduto">Novo Produto</button>
+    </div>
+    <div class="alert alert-success" th:if="${sucesso}" th:text="${sucesso}" role="alert"></div>
+    <div class="alert alert-danger" th:if="${erro}" th:text="${erro}" role="alert"></div>
+    <div class="collapse mb-3" th:classappend="${abrirCadastro == true} ? 'show'" id="formularioProduto">
+        <div class="card shadow-sm"><div class="card-body">
+            <form th:action="@{/produtos}" th:object="${produto}" method="post">
+                <div th:replace="~{produtos/produto-form :: campos}"></div>
+                <div class="d-flex justify-content-end"><button type="submit" class="btn btn-success">Salvar</button></div>
+            </form>
+        </div></div>
+    </div>
+    <div class="card shadow-sm"><div class="card-body p-0 table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr>
+                <th scope="col" class="ps-4">Nome</th><th scope="col">Tipo</th>
+                <th scope="col">Preço</th><th scope="col">Status</th>
+                <th scope="col" class="text-end pe-4">Ações</th>
+            </tr></thead>
+            <tbody>
+                <tr th:if="${#lists.isEmpty(produtos)}"><td colspan="5" class="text-center text-muted py-5">Nenhum produto cadastrado.</td></tr>
+                <tr th:each="item : ${produtos}">
+                    <td class="ps-4" th:text="${item.nome}"></td>
+                    <td th:text="${item.tipo}"></td>
+                    <td th:text="${item.preco != null ? 'R$ ' + #numbers.formatDecimal(item.preco, 1, 'POINT', 2, 'COMMA') : 'Não informado'}"></td>
+                    <td><span class="badge" th:classappend="${item.ativo == true} ? 'bg-success' : 'bg-secondary'"
+                              th:text="${item.ativo == true} ? 'ATIVO' : 'INATIVO'"></span></td>
+                    <td class="text-end pe-4">
+                        <a th:href="@{/produtos/editar/{id}(id=${item.id})}" class="btn btn-sm btn-outline-primary me-1">Editar</a>
+                        <form th:action="@{/produtos/{id}/status(id=${item.id})}" method="post" class="d-inline">
+                            <input type="hidden" name="ativo" th:value="${item.ativo != true}">
+                            <button type="submit" class="btn btn-sm me-1" th:classappend="${item.ativo == true} ? 'btn-outline-danger' : 'btn-outline-success'"
+                                    th:text="${item.ativo == true} ? 'Desativar' : 'Ativar'"></button>
+                        </form>
+                        <form th:action="@{/produtos/{id}/excluir(id=${item.id})}" method="post" class="d-inline"
+                              onsubmit="return confirm('Tem certeza que deseja excluir este produto? A exclusão é definitiva e só é permitida se ele não foi utilizado em pedidos.')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div></div>
+</div>
+</body>
 </html>

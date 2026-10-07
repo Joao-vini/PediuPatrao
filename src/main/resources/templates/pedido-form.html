@@ -4,109 +4,343 @@
     <title>Novo Pedido</title>
 </head>
 <body>
-
 <div th:fragment="content">
     <div class="d-flex align-items-center gap-3 mb-4">
         <a th:href="@{/pedidos}" class="btn btn-outline-secondary btn-sm" aria-label="Voltar para pedidos">
             <i class="bi bi-arrow-left"></i>
         </a>
-        <h2 class="fw-bold mb-0">
-            <i class="bi bi-bag-plus me-2 text-primary"></i>Novo Pedido
-        </h2>
+        <h2 class="fw-bold mb-0"><i class="bi bi-bag-plus me-2 text-primary"></i>Novo Pedido</h2>
     </div>
-
     <div class="alert alert-danger" th:if="${erro}" role="alert" th:text="${erro}"></div>
 
-    <div class="card shadow-sm" style="max-width: 760px;">
-        <div class="card-body p-4">
-            <form th:action="@{/pedidos/novo}" method="post">
-                <div class="mb-3">
-                    <label for="clienteId" class="form-label fw-medium">Cliente</label>
+    <form th:action="@{/pedidos/novo}" method="post" id="pedidoForm">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Cliente e entrega</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label for="clienteId" class="form-label">Cliente</label>
                     <select id="clienteId" name="clienteId" class="form-select" required>
                         <option value="" selected disabled>Selecione um cliente</option>
-                        <option th:each="cliente : ${clientes}"
-                                th:value="${cliente.id}"
-                                th:text="|${cliente.nome} — ${cliente.telefone}|"></option>
+                        <option th:each="cliente : ${clientes}" th:value="${cliente.id}"
+                                th:text="|${cliente.nome} — ${cliente.telefone}|"
+                                th:data-telefone="${cliente.telefone}"
+                                th:data-logradouro="${cliente.logradouro}" th:data-numero="${cliente.numero}"
+                                th:data-complemento="${cliente.complemento}" th:data-bairro="${cliente.bairro}"
+                                th:data-cidade="${cliente.cidade}" th:data-estado="${cliente.estado}"
+                                th:data-cep="${cliente.cep}" th:data-endereco-antigo="${cliente.endereco}"></option>
                     </select>
-                    <div class="form-text" th:if="${#lists.isEmpty(clientes)}">
-                        Cadastre um cliente antes de criar o pedido.
-                    </div>
+                    <div class="form-text" id="telefoneCliente"></div>
+                    <div class="form-text" th:if="${#lists.isEmpty(clientes)}">Cadastre um cliente antes de criar o pedido.</div>
                 </div>
+                <div class="col-md-6">
+                    <label for="tipoPedido" class="form-label">Tipo do pedido</label>
+                    <select id="tipoPedido" name="tipoPedido" class="form-select" required>
+                        <option th:each="tipo : ${tiposPedido}" th:value="${tipo}" th:text="${tipo.descricao}"></option>
+                    </select>
+                </div>
+                <div class="col-md-8" id="enderecoEntregaBox">
+                    <label for="enderecoEntrega" class="form-label">Endereço de entrega</label>
+                    <input id="enderecoEntrega" name="enderecoEntrega" class="form-control" maxlength="300">
+                    <div class="form-text">O endereço cadastrado é preenchido como padrão e pode ser ajustado para este pedido.</div>
+                </div>
+                <div class="col-md-4" id="taxaEntregaBox">
+                    <label for="taxaEntrega" class="form-label">Taxa de entrega (R$)</label>
+                    <input id="taxaEntrega" name="taxaEntrega" type="number" min="0" step="0.01" value="0" class="form-control">
+                </div>
+            </div>
+        </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-medium">Itens do pedido</label>
-                    <div id="itensPedido" class="d-flex flex-column gap-2">
-                        <div class="item-pedido row g-2 align-items-center">
-                            <div class="col-md-8">
-                                <select name="produtoIds" class="form-select" required>
-                                    <option value="" selected disabled>Selecione um produto</option>
-                                    <option th:each="produto : ${produtos}"
-                                            th:value="${produto.id}"
-                                            th:text="|${produto.nome} — R$ ${produto.preco}|"></option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <input type="number" name="quantidades" class="form-control"
-                                       min="1" step="1" value="1" required aria-label="Quantidade">
-                            </div>
-                            <div class="col-md-1">
-                                <button type="button" class="btn btn-outline-danger remover-item"
-                                        aria-label="Remover item" disabled>
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
+        <div class="card shadow-sm mb-3">
+            <div class="card-header fw-semibold">Itens</div>
+            <div class="card-body">
+                <div id="itensPedido" class="d-flex flex-column gap-2">
+                    <div class="item-pedido row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label">Produto</label>
+                            <select name="produtoIds" class="form-select produto" required>
+                                <option value="" selected disabled>Selecione um produto</option>
+                                <option th:each="produto : ${produtos}" th:value="${produto.id}"
+                                        th:text="|${produto.nome} — R$ ${produto.preco}|"
+                                        th:data-preco="${produto.preco}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Quantidade</label>
+                            <input type="number" name="quantidades" class="form-control quantidade" min="1" step="1" value="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Observação do item</label>
+                            <input type="text" name="observacoesItens" class="form-control" maxlength="250" placeholder="Ex.: sem cebola">
+                        </div>
+                        <div class="col-md-1">
+                            <button type="button" class="btn btn-outline-danger remover-item" aria-label="Remover item" disabled>
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </div>
                     </div>
-                    <button type="button" id="adicionarItem" class="btn btn-outline-primary btn-sm mt-2">
-                        <i class="bi bi-plus-lg me-1"></i>Adicionar produto
-                    </button>
-                    <div class="form-text" th:if="${#lists.isEmpty(produtos)}">
-                        Cadastre um produto antes de criar o pedido.
+                </div>
+                <button type="button" id="adicionarItem" class="btn btn-outline-primary btn-sm mt-3">
+                    <i class="bi bi-plus-lg me-1"></i>Adicionar produto
+                </button>
+                <div class="form-text" th:if="${#lists.isEmpty(produtos)}">Cadastre um produto antes de criar o pedido.</div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header fw-semibold">Pagamento</div>
+                    <div class="card-body">
+                        <label for="formaPagamento" class="form-label">Forma de pagamento</label>
+                        <select id="formaPagamento" name="formaPagamento" class="form-select mb-3" required>
+                            <option value="" selected disabled>Selecione</option>
+                            <option th:each="forma : ${formasPagamento}" th:value="${forma}" th:text="${forma.descricao}"></option>
+                        </select>
+                        <div id="trocoBox" class="mb-3" hidden>
+                            <label for="trocoPara" class="form-label">Troco para R$</label>
+                            <input id="trocoPara" name="trocoPara" type="number" min="0" step="0.01" class="form-control">
+                            <div class="form-text" id="valorTrocoPreview"></div>
+                        </div>
+                        <label for="observacaoGeral" class="form-label">Observação geral</label>
+                        <textarea id="observacaoGeral" name="observacaoGeral" class="form-control" rows="3" maxlength="500"
+                                  placeholder="Ex.: tocar interfone"></textarea>
                     </div>
                 </div>
-
-                <div class="mb-4" th:if="${podeAplicarDesconto}">
-                    <label for="descontoPercentual" class="form-label fw-medium">Desconto (%)</label>
-                    <input type="number" id="descontoPercentual" name="descontoPercentual"
-                           class="form-control" min="0" max="100" step="0.01" value="0">
-                    <div class="form-text">O valor final será calculado pelo servidor.</div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header fw-semibold">Resumo</div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2"><span>Subtotal</span><strong id="subtotalPreview">R$ 0,00</strong></div>
+                        <div class="d-flex justify-content-between mb-2"><span>Taxa de entrega</span><strong id="taxaPreview">R$ 0,00</strong></div>
+                        <input id="tipoDescontoPedido" type="hidden" name="tipoDesconto" value="SEM_DESCONTO">
+                        <input id="descontoInformadoPedido" type="hidden" name="descontoInformado" value="0">
+                        <div class="d-flex justify-content-between mb-3"><span>Desconto</span><strong id="descontoPreview">R$ 0,00</strong></div>
+                        <button th:if="${podeGerenciarPedidos}" type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#autorizarDescontoModal">
+                            Aplicar desconto
+                        </button>
+                        <hr>
+                        <div class="d-flex justify-content-between fs-5"><span>Total</span><strong id="totalPreview">R$ 0,00</strong></div>
+                        <div class="small text-muted mt-2">O servidor valida os itens, calcula os valores e registra o responsável e o horário.</div>
+                    </div>
                 </div>
-
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary"
-                            th:disabled="${#lists.isEmpty(clientes) or #lists.isEmpty(produtos)}">
-                        <i class="bi bi-check-lg me-1"></i>Criar Pedido
-                    </button>
-                    <a th:href="@{/pedidos}" class="btn btn-outline-secondary">Cancelar</a>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+
+        <div class="modal fade" id="autorizarDescontoModal" tabindex="-1" aria-labelledby="autorizarDescontoTitulo" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5" id="autorizarDescontoTitulo">Autorizar desconto</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="erroAutorizacaoDesconto" class="alert alert-danger d-none" role="alert"></div>
+                        <label for="tipoDescontoAutorizacao" class="form-label">Tipo do desconto</label>
+                        <select id="tipoDescontoAutorizacao" class="form-select mb-3">
+                            <option value="PERCENTUAL">Porcentagem (%)</option>
+                        </select>
+                        <label for="valorDescontoAutorizacao" class="form-label">Desconto percentual (até 20%)</label>
+                        <input id="valorDescontoAutorizacao" type="number" min="0" max="20" step="0.01" class="form-control mb-3">
+                        <label for="usuarioGerenteDesconto" class="form-label">Usuário do gerente autorizador</label>
+                        <input id="usuarioGerenteDesconto" name="usuarioGerenteDesconto" type="text" class="form-control mb-3" autocomplete="off">
+                        <label for="senhaGerenteDesconto" class="form-label">Senha do gerente</label>
+                        <input id="senhaGerenteDesconto" name="senhaGerenteDesconto" type="password" class="form-control" autocomplete="off">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar</button>
+                        <button type="button" id="confirmarAutorizacaoDesconto" class="btn btn-success">Autorizar desconto</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3 mb-4">
+            <button type="submit" class="btn btn-primary" th:disabled="${#lists.isEmpty(clientes) or #lists.isEmpty(produtos)}">
+                <i class="bi bi-check-lg me-1"></i>Criar Pedido
+            </button>
+            <a th:href="@{/pedidos}" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+    </form>
 
     <script>
         const itensPedido = document.getElementById('itensPedido');
-        document.getElementById('adicionarItem').addEventListener('click', () => {
-            const novoItem = itensPedido.querySelector('.item-pedido').cloneNode(true);
-            novoItem.querySelector('select').selectedIndex = 0;
-            novoItem.querySelector('input').value = 1;
-            itensPedido.appendChild(novoItem);
-            atualizarBotoesRemover();
-        });
+        const tipoPedido = document.getElementById('tipoPedido');
+        const clienteSelect = document.getElementById('clienteId');
+        const formaPagamento = document.getElementById('formaPagamento');
+        const tipoDescontoAutorizacao = document.getElementById('tipoDescontoAutorizacao');
+        const valorDescontoAutorizacao = document.getElementById('valorDescontoAutorizacao');
+        const tipoDescontoPedido = document.getElementById('tipoDescontoPedido');
+        const descontoInformadoPedido = document.getElementById('descontoInformadoPedido');
+        const usuarioGerenteDesconto = document.getElementById('usuarioGerenteDesconto');
+        const senhaGerenteDesconto = document.getElementById('senhaGerenteDesconto');
+        const erroAutorizacaoDesconto = document.getElementById('erroAutorizacaoDesconto');
+        let resumoDescontoAutorizado = null;
+        const dinheiro = 'DINHEIRO';
+        const moeda = valor => (Number.isFinite(valor) ? valor : 0).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        valorDescontoAutorizacao.max = '20';
 
-        itensPedido.addEventListener('click', event => {
-            const botaoRemover = event.target.closest('.remover-item');
-            if (botaoRemover && itensPedido.querySelectorAll('.item-pedido').length > 1) {
-                botaoRemover.closest('.item-pedido').remove();
-                atualizarBotoesRemover();
-            }
-        });
+        function invalidarDescontoAutorizado() {
+            if (!resumoDescontoAutorizado) return;
+            resumoDescontoAutorizado = null;
+            tipoDescontoPedido.value = 'SEM_DESCONTO';
+            descontoInformadoPedido.value = '0';
+            usuarioGerenteDesconto.value = '';
+            senhaGerenteDesconto.value = '';
+            erroAutorizacaoDesconto.textContent = 'O pedido foi alterado. Autorize o desconto novamente.';
+            erroAutorizacaoDesconto.classList.remove('d-none');
+        }
 
         function atualizarBotoesRemover() {
             const botoes = itensPedido.querySelectorAll('.remover-item');
             botoes.forEach(botao => botao.disabled = botoes.length === 1);
         }
+
+        function atualizarTipoPedido() {
+            invalidarDescontoAutorizado();
+            const entrega = tipoPedido.value === 'ENTREGA';
+            document.getElementById('enderecoEntregaBox').hidden = !entrega;
+            document.getElementById('taxaEntregaBox').hidden = !entrega;
+            document.getElementById('enderecoEntrega').disabled = !entrega;
+            document.getElementById('taxaEntrega').disabled = !entrega;
+            if (!entrega) document.getElementById('taxaEntrega').value = '0';
+            atualizarResumo();
+        }
+
+        function atualizarCliente() {
+            const opcao = clienteSelect.selectedOptions[0];
+            document.getElementById('telefoneCliente').textContent = opcao?.dataset.telefone || '';
+            const endereco = document.getElementById('enderecoEntrega');
+            if (opcao) {
+                const partes = ['logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado', 'cep']
+                    .map(campo => opcao.dataset[campo]).filter(valor => valor && valor !== 'null');
+                endereco.value = partes.length ? partes.join(', ') : (opcao.dataset.enderecoAntigo || '');
+            }
+        }
+
+        function atualizarPagamento() {
+            const mostrarTroco = formaPagamento.value === dinheiro;
+            document.getElementById('trocoBox').hidden = !mostrarTroco;
+            document.getElementById('trocoPara').disabled = !mostrarTroco;
+            document.getElementById('trocoPara').required = mostrarTroco;
+            if (!mostrarTroco) document.getElementById('trocoPara').value = '';
+            atualizarResumo();
+        }
+
+        function atualizarResumo() {
+            let subtotal = 0;
+            itensPedido.querySelectorAll('.item-pedido').forEach(linha => {
+                const opcao = linha.querySelector('.produto').selectedOptions[0];
+                const preco = Number(opcao?.dataset.preco || 0);
+                const quantidade = Number(linha.querySelector('.quantidade').value || 0);
+                subtotal += preco * quantidade;
+            });
+            const taxa = tipoPedido.value === 'ENTREGA' ? Number(document.getElementById('taxaEntrega').value || 0) : 0;
+            const base = subtotal + taxa;
+            let desconto = 0;
+            let total = base;
+            let subtotalResumo = subtotal;
+            let taxaResumo = taxa;
+            if (resumoDescontoAutorizado) {
+                subtotalResumo = Number(resumoDescontoAutorizado.subtotalProdutos);
+                taxaResumo = Number(resumoDescontoAutorizado.taxaEntrega);
+                desconto = Number(resumoDescontoAutorizado.valorDesconto);
+                total = Number(resumoDescontoAutorizado.valorTotal);
+            }
+            document.getElementById('subtotalPreview').textContent = moeda(subtotalResumo);
+            document.getElementById('taxaPreview').textContent = moeda(taxaResumo);
+            document.getElementById('descontoPreview').textContent = moeda(desconto);
+            document.getElementById('totalPreview').textContent = moeda(total);
+            const para = Number(document.getElementById('trocoPara').value || 0);
+            document.getElementById('valorTrocoPreview').textContent = formaPagamento.value === dinheiro && para >= total
+                ? 'Troco: ' + moeda(para - total) : '';
+        }
+
+        document.getElementById('adicionarItem').addEventListener('click', () => {
+            invalidarDescontoAutorizado();
+            const linha = itensPedido.querySelector('.item-pedido').cloneNode(true);
+            linha.querySelector('.produto').selectedIndex = 0;
+            linha.querySelector('.quantidade').value = 1;
+            linha.querySelector('input[name="observacoesItens"]').value = '';
+            itensPedido.appendChild(linha);
+            atualizarBotoesRemover();
+            atualizarResumo();
+        });
+        itensPedido.addEventListener('click', event => {
+            const botao = event.target.closest('.remover-item');
+            if (botao && itensPedido.querySelectorAll('.item-pedido').length > 1) {
+                invalidarDescontoAutorizado();
+                botao.closest('.item-pedido').remove();
+                atualizarBotoesRemover();
+                atualizarResumo();
+            }
+        });
+        itensPedido.addEventListener('input', () => { invalidarDescontoAutorizado(); atualizarResumo(); });
+        itensPedido.addEventListener('change', () => { invalidarDescontoAutorizado(); atualizarResumo(); });
+        tipoPedido.addEventListener('change', atualizarTipoPedido);
+        clienteSelect.addEventListener('change', atualizarCliente);
+        formaPagamento.addEventListener('change', atualizarPagamento);
+        document.getElementById('taxaEntrega').addEventListener('input', () => { invalidarDescontoAutorizado(); atualizarResumo(); });
+        tipoDescontoAutorizacao.addEventListener('change', () => {
+            invalidarDescontoAutorizado();
+            valorDescontoAutorizacao.max = '20';
+            atualizarResumo();
+        });
+        valorDescontoAutorizacao.addEventListener('input', () => { invalidarDescontoAutorizado(); atualizarResumo(); });
+        document.getElementById('trocoPara').addEventListener('input', atualizarResumo);
+
+        document.getElementById('confirmarAutorizacaoDesconto').addEventListener('click', async event => {
+            const valor = Number(valorDescontoAutorizacao.value);
+            if (!valorDescontoAutorizacao.value.trim() || !Number.isFinite(valor) || valor < 0 || valor > 20 || !usuarioGerenteDesconto.value.trim()
+                    || !senhaGerenteDesconto.value) {
+                erroAutorizacaoDesconto.textContent = 'Informe um percentual entre 0 e 20 e as credenciais do gerente.';
+                erroAutorizacaoDesconto.classList.remove('d-none');
+                return;
+            }
+
+            const dados = new URLSearchParams();
+            itensPedido.querySelectorAll('.item-pedido').forEach(linha => {
+                dados.append('produtoIds', linha.querySelector('.produto').value);
+                dados.append('quantidades', linha.querySelector('.quantidade').value);
+            });
+            dados.set('tipoPedido', tipoPedido.value);
+            dados.set('taxaEntrega', document.getElementById('taxaEntrega').value || '0');
+            dados.set('tipoDesconto', tipoDescontoAutorizacao.value);
+            dados.set('descontoInformado', valorDescontoAutorizacao.value);
+            dados.set('usuarioGerenteDesconto', usuarioGerenteDesconto.value);
+            dados.set('senhaGerenteDesconto', senhaGerenteDesconto.value);
+            const csrf = document.querySelector('#pedidoForm input[name="_csrf"]')?.value;
+            if (csrf) dados.set('_csrf', csrf);
+
+            const botao = event.currentTarget;
+            botao.disabled = true;
+            erroAutorizacaoDesconto.classList.add('d-none');
+            try {
+                const resposta = await fetch('/pedidos/autorizar-desconto', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
+                    body: dados.toString()
+                });
+                const resultado = await resposta.json().catch(() => ({}));
+                if (!resposta.ok) throw new Error(resultado.message || resultado.detail || 'Não foi possível autorizar o desconto.');
+
+                resumoDescontoAutorizado = resultado;
+                tipoDescontoPedido.value = tipoDescontoAutorizacao.value;
+                descontoInformadoPedido.value = valorDescontoAutorizacao.value;
+                atualizarResumo();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('autorizarDescontoModal'));
+                modal?.hide();
+            } catch (erro) {
+                erroAutorizacaoDesconto.textContent = erro.message || 'Não foi possível autorizar o desconto.';
+                erroAutorizacaoDesconto.classList.remove('d-none');
+            } finally {
+                botao.disabled = false;
+            }
+        });
+        atualizarTipoPedido();
+        atualizarPagamento();
+        atualizarBotoesRemover();
     </script>
 </div>
-
 </body>
 </html>

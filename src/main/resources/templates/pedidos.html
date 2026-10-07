@@ -1,127 +1,127 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Lista de Pedidos</title>
-</head>
+<head><title>Painel de Pedidos</title></head>
 <body>
-
 <div th:fragment="content">
-
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold mb-0">
-            <i class="bi bi-bag me-2 text-primary"></i>Pedidos
-        </h2>
+        <h2 class="fw-bold mb-0"><i class="bi bi-bag me-2 text-primary"></i>Painel de pedidos</h2>
         <a th:if="${podeCriarPedido}" th:href="@{/pedidos/novo}" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-1"></i> Novo Pedido
+            <i class="bi bi-plus-lg me-1"></i>Novo Pedido
         </a>
     </div>
-
-    <!-- Mensagens de feedback -->
     <div class="alert alert-success alert-dismissible fade show" th:if="${sucesso}" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i>
-        <span th:text="${sucesso}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <span th:text="${sucesso}"></span><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <div class="alert alert-danger alert-dismissible fade show" th:if="${erro}" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <span th:text="${erro}"></span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <span th:text="${erro}"></span><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
-    <!-- Tabela -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
+    <section th:each="grupo : ${gruposPedidos}" class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="h5 mb-0" th:text="${grupo.key}"></h3>
+            <span class="badge bg-secondary" th:text="${#lists.size(grupo.value)}"></span>
+        </div>
+        <div class="card-body text-muted text-center py-4" th:if="${#lists.isEmpty(grupo.value)}">
+            Nenhum pedido neste grupo.
+        </div>
+        <div class="table-responsive" th:unless="${#lists.isEmpty(grupo.value)}">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-dark">
-                    <tr>
-                        <th class="ps-4">ID</th>
-                        <th>Cliente ID</th>
-                        <th>Itens</th>
-                        <th>Desconto</th>
-                        <th>Valor total</th>
-                        <th>Responsável</th>
-                        <th>Data e hora</th>
-                        <th>Status</th>
-                        <th th:if="${podeGerenciarPedidos}">Ações</th>
-                    </tr>
+                <tr>
+                    <th class="ps-3">Pedido</th><th>Cliente</th><th>Tipo</th><th>Itens</th>
+                    <th>Total</th><th>Pagamento</th><th>Responsável</th><th>Horário</th><th>Status</th><th>Ações</th>
+                </tr>
                 </thead>
                 <tbody>
-                    <!-- Lista vazia -->
-                    <tr th:if="${#lists.isEmpty(pedidos)}">
-                        <td th:colspan="${podeGerenciarPedidos ? 9 : 8}" class="text-center text-muted py-5">
-                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                            Nenhum pedido encontrado.
-                        </td>
-                    </tr>
-                    <!-- Linhas -->
-                    <tr th:each="pedido : ${pedidos}">
-                        <td class="ps-4 text-muted" th:text="${pedido.id}"></td>
-                        <td th:text="${pedido.clienteId}"></td>
-                        <td>
-                            <span th:if="${pedido.itens == null or #lists.isEmpty(pedido.itens)}"
-                                  th:text="|${pedido.quantidade}x ${pedido.tipoPizza} ${pedido.sabor}|"></span>
-                            <ul th:if="${pedido.itens != null and !#lists.isEmpty(pedido.itens)}" class="mb-0 ps-3">
-                                <li th:each="item : ${pedido.itens}">
-                                    <span th:text="|${item.quantidade}x ${item.nomeProduto} (R$ ${item.precoUnitario})|"></span>
-                                </li>
-                            </ul>
-                        </td>
-                        <td>
-                            <span th:if="${pedido.descontoPercentual != null}"
-                                  th:text="|${pedido.descontoPercentual}% (R$ ${pedido.valorDesconto})|"></span>
-                            <span th:if="${pedido.descontoPercentual == null}">—</span>
-                        </td>
-                        <td th:text="${pedido.valorTotal != null ? 'R$ ' + pedido.valorTotal : '—'}"></td>
-                        <td th:text="${pedido.usuarioResponsavelUsername != null ? pedido.usuarioResponsavelUsername : '—'}"></td>
-                        <td th:text="${pedido.dataHora != null ? pedido.dataHora : '—'}"></td>
-                        <td>
-                            <span class="badge"
-                                  th:classappend="${pedido.status == 'ENTREGUE'} ? 'bg-success' :
-                                                  (${pedido.status == 'CANCELADO'} ? 'bg-danger' :
-                                                  (${pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO'} ? 'bg-warning text-dark' : 'bg-secondary'))"
-                                  th:text="${pedido.status == 'EM_PREPARACAO' ? 'EM PREPARAÇÃO' :
-                                                   (pedido.status == 'SAIU_PARA_ENTREGA' ? 'SAIU PARA ENTREGA' : pedido.status)}">
-                            </span>
-                        </td>
-                        <td th:if="${podeGerenciarPedidos}" class="text-end">
-                            <details th:if="${pedido.status != 'CANCELADO' and pedido.status != 'FINALIZADO'}">
-                                <summary class="btn btn-sm btn-outline-primary">Gerenciar</summary>
-                                <div class="d-flex flex-column gap-2 mt-2" style="min-width: 230px;">
-                                    <form th:if="${pedido.status == 'RECEBIDO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO' or pedido.status == 'PRONTO' or pedido.status == 'SAIU_PARA_ENTREGA' or pedido.status == 'RETIRADO'}"
-                                          th:action="@{/pedidos/{id}/status(id=${pedido.id})}" method="post" class="d-flex gap-1">
-                                        <select name="status" class="form-select form-select-sm" required>
-                                            <option th:if="${pedido.status == 'RECEBIDO'}" value="EM_PREPARACAO">EM PREPARAÇÃO</option>
-                                            <option th:if="${pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO'}" value="PRONTO">PRONTO</option>
-                                            <option th:if="${pedido.status == 'PRONTO'}" value="SAIU_PARA_ENTREGA">SAIU PARA ENTREGA</option>
-                                            <option th:if="${pedido.status == 'PRONTO'}" value="RETIRADO">RETIRADO</option>
-                                            <option th:if="${pedido.status == 'SAIU_PARA_ENTREGA' or pedido.status == 'RETIRADO'}" value="FINALIZADO">FINALIZADO</option>
-                                        </select>
-                                        <button type="submit" class="btn btn-sm btn-primary">Avançar</button>
-                                    </form>
-                                    <form th:if="${pedido.status == 'RECEBIDO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO' or pedido.status == 'PRONTO'}"
-                                          th:action="@{/pedidos/{id}/desconto(id=${pedido.id})}" method="post" class="input-group input-group-sm">
-                                        <input type="number" name="percentual" class="form-control" min="0" max="20" step="0.01" placeholder="Desconto %" required>
-                                        <button type="submit" class="btn btn-outline-success">Aplicar</button>
-                                    </form>
-                                    <form th:if="${pedido.status == 'RECEBIDO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'EM_PREPARO' or pedido.status == 'PRONTO'}"
-                                          th:action="@{/pedidos/{id}/cancelamento(id=${pedido.id})}" method="post" class="d-flex flex-column gap-1">
-                                        <input type="text" name="justificativa" class="form-control form-control-sm"
-                                               placeholder="Justificativa do cancelamento" required maxlength="500">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar pedido</button>
-                                    </form>
-                                </div>
-                            </details>
-                        </td>
-                    </tr>
+                <tr th:each="pedido : ${grupo.value}"
+                    th:with="cliente=${clientesPorId[pedido.clienteId]}, proximo=${proximosStatus[pedido.id]}">
+                    <td class="ps-3"><span class="text-muted" th:text="${pedido.id}"></span></td>
+                    <td>
+                        <span th:text="${cliente != null ? cliente.nome : (pedido.clienteNome != null ? pedido.clienteNome : pedido.clienteId)}"></span>
+                        <small class="d-block text-muted" th:if="${cliente != null}" th:text="${cliente.telefone}"></small>
+                        <small class="d-block text-muted" th:if="${cliente == null and pedido.clienteTelefone != null}" th:text="${pedido.clienteTelefone}"></small>
+                        <small class="d-block text-muted" th:if="${pedido.tipoPedido != null and pedido.tipoPedido.name() == 'ENTREGA' and pedido.enderecoEntrega != null}"
+                               th:text="${pedido.enderecoEntrega}"></small>
+                    </td>
+                    <td th:text="${pedido.tipoPedido != null ? pedido.tipoPedido.descricao : '—'}"></td>
+                    <td>
+                        <span th:if="${pedido.itens == null or #lists.isEmpty(pedido.itens)}"
+                              th:text="|${pedido.quantidade}x ${pedido.tipoPizza} ${pedido.sabor}|"></span>
+                        <ul th:if="${pedido.itens != null and !#lists.isEmpty(pedido.itens)}" class="mb-0 ps-3">
+                            <li th:each="item : ${pedido.itens}" th:text="|${item.quantidade}x ${item.nomeProduto}|"></li>
+                        </ul>
+                    </td>
+                    <td th:text="${pedido.valorTotal != null ? 'R$ ' + pedido.valorTotal : '—'}"></td>
+                    <td th:text="${pedido.formaPagamento != null ? pedido.formaPagamento.descricao : '—'}"></td>
+                    <td th:text="${pedido.usuarioResponsavelUsername != null ? pedido.usuarioResponsavelUsername : '—'}"></td>
+                    <td th:text="${pedido.dataHora != null ? pedido.dataHora : '—'}"></td>
+                    <td>
+                        <span class="badge bg-secondary" th:if="${pedido.status == 'RECEBIDO'}">Recebido</span>
+                        <span class="badge bg-warning text-dark" th:if="${pedido.status == 'EM_PREPARO' or pedido.status == 'EM_PREPARACAO'}">Em preparo</span>
+                        <span class="badge bg-info text-dark" th:if="${pedido.status == 'PRONTO'}">Pronto</span>
+                        <span class="badge bg-primary" th:if="${pedido.status == 'PRONTO_PARA_RETIRADA'}">Pronto para retirada</span>
+                        <span class="badge bg-warning text-dark" th:if="${pedido.status == 'SAIU_PARA_ENTREGA'}">Saiu para entrega</span>
+                        <span class="badge bg-success" th:if="${pedido.status == 'FINALIZADO'}">Finalizado</span>
+                        <span class="badge bg-danger" th:if="${pedido.status == 'CANCELADO'}">Cancelado</span>
+                        <span class="badge bg-success" th:if="${pedido.status == 'ENTREGUE'}">Entregue (legado)</span>
+                        <span class="badge bg-secondary" th:if="${pedido.status == 'RETIRADO'}">Retirado</span>
+                        <span class="badge bg-secondary" th:if="${pedido.status != null and pedido.status != 'RECEBIDO' and pedido.status != 'EM_PREPARO' and pedido.status != 'EM_PREPARACAO' and pedido.status != 'PRONTO' and pedido.status != 'PRONTO_PARA_RETIRADA' and pedido.status != 'SAIU_PARA_ENTREGA' and pedido.status != 'FINALIZADO' and pedido.status != 'CANCELADO' and pedido.status != 'ENTREGUE' and pedido.status != 'RETIRADO'}" th:text="${pedido.status}"></span>
+                        <span class="badge bg-secondary" th:if="${pedido.status == null}">Status não informado</span>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+                            <form th:if="${podeAvancarPedidos and proximo != null}"
+                                  th:action="@{/pedidos/{id}/status(id=${pedido.id})}" method="post">
+                                <input type="hidden" name="status" th:value="${proximo}">
+                                <button type="submit" class="btn btn-sm btn-primary"
+                                        th:text="${proximo == 'EM_PREPARO' ? 'Iniciar preparo' : (proximo == 'PRONTO' ? 'Pedido pronto' : (proximo == 'RETIRADO' ? 'Registrar retirada' : (proximo == 'SAIU_PARA_ENTREGA' ? 'Saiu para entrega' : 'Finalizar pedido')))}"></button>
+                            </form>
+                            <button th:if="${podeSolicitarCancelamento and cancelaveisPorId[pedido.id]}"
+                                    type="button" class="btn btn-sm btn-outline-danger"
+                                    data-bs-toggle="modal" th:attr="data-bs-target=|#cancelarPedido-${pedido.id}|">
+                                Cancelar pedido
+                            </button>
+                            <a th:href="@{/pedidos/{id}(id=${pedido.id})}" class="btn btn-sm btn-outline-primary">Ver pedido</a>
+                        </div>
+                        <small class="text-muted" th:if="${podeAvancarPedidos and proximo == null and (pedido.status == 'EM_PREPARO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'PRONTO') and pedido.tipoPedido == null}">
+                            Tipo ausente no pedido antigo; não é possível avançar.
+                        </small>
+                    </td>
+                </tr>
                 </tbody>
             </table>
         </div>
-        <div class="card-footer text-muted small" th:if="${!#lists.isEmpty(pedidos)}">
-            Total: <strong th:text="${#lists.size(pedidos)}"></strong> pedido(s)
+    </section>
+
+    <div th:each="pedido : ${pedidos}" th:if="${podeSolicitarCancelamento and cancelaveisPorId[pedido.id]}"
+         class="modal fade" tabindex="-1" aria-hidden="true"
+         th:id="|cancelarPedido-${pedido.id}|">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/pedidos/{id}/cancelamento(id=${pedido.id})}" method="post">
+                    <div class="modal-header">
+                        <h2 class="modal-title fs-5">Cancelar pedido</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Voltar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label" th:for="|motivo-${pedido.id}|">Motivo do cancelamento</label>
+                        <textarea class="form-control mb-3" th:id="|motivo-${pedido.id}|" name="justificativa"
+                                  rows="3" maxlength="500" required></textarea>
+                        <label class="form-label" th:for="|usuario-gerente-${pedido.id}|">Usuário do gerente</label>
+                        <input class="form-control mb-3" type="text" th:id="|usuario-gerente-${pedido.id}|"
+                               name="usuarioGerente" autocomplete="username" required>
+                        <label class="form-label" th:for="|senha-gerente-${pedido.id}|">Senha do gerente</label>
+                        <input class="form-control" type="password" th:id="|senha-gerente-${pedido.id}|"
+                               name="senhaGerente" autocomplete="current-password" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar cancelamento</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-
 </div>
-
 </body>
 </html>

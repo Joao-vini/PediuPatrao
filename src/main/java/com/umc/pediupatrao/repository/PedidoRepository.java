@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface PedidoRepository extends MongoRepository<Pedido, String> {
     List<Pedido> findByClienteId(String clienteId);
+    boolean existsByItensProdutoId(String produtoId);
 }

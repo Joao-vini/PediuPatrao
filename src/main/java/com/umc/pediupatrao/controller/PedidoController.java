@@ -16,8 +16,11 @@ public class PedidoController {
     private PedidoService pedidoService;
 
     @PostMapping
-    public Pedido criarPedido(@RequestBody Pedido pedido, Authentication authentication) {
-        return pedidoService.criarPedido(pedido, authentication);
+    public Pedido criarPedido(@RequestBody Pedido pedido,
+                              @RequestHeader(value = "X-Gerente-Usuario", required = false) String usuarioGerente,
+                              @RequestHeader(value = "X-Gerente-Senha", required = false) String senhaGerente,
+                              Authentication authentication) {
+        return pedidoService.criarPedido(pedido, usuarioGerente, senhaGerente, authentication);
     }
 
     @GetMapping
@@ -39,8 +42,10 @@ public class PedidoController {
 
     @PostMapping("/{id}/cancelamento")
     public Pedido cancelar(@PathVariable String id, @RequestParam String justificativa,
+                           @RequestParam String usuarioGerente,
+                           @RequestParam String senhaGerente,
                            Authentication authentication) {
-        return pedidoService.cancelar(id, justificativa, authentication);
+        return pedidoService.cancelar(id, justificativa, usuarioGerente, senhaGerente, authentication);
     }
     
     

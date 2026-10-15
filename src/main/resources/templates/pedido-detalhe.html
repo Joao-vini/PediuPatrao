@@ -124,11 +124,11 @@
                 </div>
             </div>
         </div>
-        <div class="col-12" th:if="${podeSolicitarCancelamento and podeCancelarPedido}">
+        <div class="col-12" th:if="${podeCancelarPedido}">
             <div class="card shadow-sm">
                 <div class="card-header fw-semibold">Ações do pedido</div>
                 <div class="card-body d-flex flex-column gap-3">
-                    <form th:if="${podeGerenciarPedidos}" th:action="@{/pedidos/{id}/desconto(id=${pedido.id})}" method="post" class="row g-2 align-items-end">
+                    <form th:action="@{/pedidos/{id}/desconto(id=${pedido.id})}" method="post" class="row g-2 align-items-end">
                         <div class="col-md-3">
                             <label class="form-label">Tipo de desconto</label>
                             <select name="tipoDesconto" class="form-select" required>

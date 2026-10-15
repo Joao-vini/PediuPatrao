@@ -36,6 +36,10 @@
             <span th:if="${status != 404 and status != 403 and status != 500}">Ocorreu um erro ao processar sua requisição.</span>
         </p>
 
+        <p class="text-muted" th:if="${status == 403 and path != null and (path.endsWith('/desconto') or path.endsWith('/cancelamento'))}">
+            Somente GERENTE pode aplicar descontos ou cancelar pedidos. A operação não foi realizada.
+        </p>
+
         <!-- Mensagem técnica, se disponível -->
         <p class="text-muted small mb-4" th:if="${message != null and !#strings.isEmpty(message)}">
             <code th:text="${message}"></code>

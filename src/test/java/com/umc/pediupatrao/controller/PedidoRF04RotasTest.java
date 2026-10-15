@@ -45,7 +45,23 @@ class PedidoRF04RotasTest {
                 mvc.perform(requisicao(rota, perfil)).andExpect(status().isForbidden());
             }
         }
-        verifyNoInteractions(pedidos);
+        verifyNoInteractions(pedidos, auditoria);
+    }
+
+    @Test void pagina403ExplicaBloqueioDasOperacoesSemExecutarPedidoOuAuditoria() throws Exception {
+        for (String perfil : List.of("ADMIN", "ATENDENTE")) {
+            for (String acao : List.of("desconto", "cancelamento")) {
+                mvc.perform(get("/error").with(user("operador").roles(perfil))
+                        .accept(org.springframework.http.MediaType.TEXT_HTML)
+                        .requestAttr(jakarta.servlet.RequestDispatcher.ERROR_STATUS_CODE, 403)
+                        .requestAttr(jakarta.servlet.RequestDispatcher.ERROR_REQUEST_URI, "/pedidos/p1/" + acao))
+                        .andExpect(status().isForbidden())
+                        .andExpect(content().string(org.hamcrest.Matchers.containsString("Acesso negado")))
+                        .andExpect(content().string(org.hamcrest.Matchers.containsString("Somente GERENTE")))
+                        .andExpect(content().string(org.hamcrest.Matchers.containsString("A operação não foi realizada.")));
+            }
+        }
+        verifyNoInteractions(pedidos, auditoria);
     }
 
     @Test void gerenteAcessaOperacoesPelaApiEInterface() throws Exception {

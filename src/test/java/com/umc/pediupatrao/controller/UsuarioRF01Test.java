@@ -228,12 +228,20 @@ class UsuarioRF01Test {
                         .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
                 assertTrue(html.contains("name=\"_csrf\""));
                 assertEquals(!perfil.equals("ADMIN"), html.contains("action=\"/pedidos/p1/status\""));
-                assertEquals(perfil.equals("GERENTE"), html.contains("action=\"/pedidos/p1/cancelamento\""));
+                assertEquals(rota.equals("/pedidos/p1") || perfil.equals("GERENTE"),
+                        html.contains("action=\"/pedidos/p1/cancelamento\""));
                 assertEquals(!perfil.equals("ADMIN"), html.contains("href=\"/clientes\""));
                 assertEquals(perfil.equals("ADMIN"), html.contains("href=\"/usuarios\""));
                 assertEquals(!perfil.equals("ATENDENTE"), html.contains("href=\"/auditoria\""));
                 if (rota.equals("/pedidos/p1")) {
-                    assertEquals(perfil.equals("GERENTE"), html.contains("action=\"/pedidos/p1/desconto\""));
+                    assertTrue(html.contains("action=\"/pedidos/p1/desconto\""));
+                    for (String acao : List.of("desconto", "cancelamento")) {
+                        int inicio = html.indexOf("action=\"/pedidos/p1/" + acao + "\"");
+                        String formulario = html.substring(inicio, html.indexOf("</form>", inicio));
+                        assertTrue(formulario.contains("name=\"_csrf\""));
+                        assertTrue(formulario.contains("<button type=\"submit\""));
+                        assertFalse(formulario.contains("disabled"));
+                    }
                 }
             }
             List<String> rotas = switch (perfil) {

@@ -78,4 +78,24 @@ class PedidoRF04RotasTest {
         mvc.perform(requisicao("/pedidos/autorizar-desconto", "GERENTE")).andExpect(status().isOk());
         verify(pedidos, times(2)).cancelar(eq("p1"), eq("Cliente desistiu"), eq("gestor"), eq("senha"), any());
     }
+
+    @Test void remocaoExigeGerenteECsrf() throws Exception {
+        for(String perfil:List.of("ADMIN","ATENDENTE")) mvc.perform(delete("/api/pedidos/p1/desconto")
+                .with(user("operador").roles(perfil)).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/pedidos/p1/desconto").with(user("gestor").roles("GERENTE")))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/pedidos/p1/desconto")).andExpect(status().isForbidden());
+        verifyNoInteractions(pedidos);
+        when(pedidos.removerDesconto(eq("p1"),any())).thenReturn(new Pedido());
+        mvc.perform(delete("/api/pedidos/p1/desconto").with(user("gestor").roles("GERENTE")).with(csrf()))
+                .andExpect(status().isOk());
+        verify(pedidos).removerDesconto(eq("p1"),any());
+    }
+
+    @Test void formularioExistenteRemoveSemCriarOutraRegraDeCalculo() throws Exception {
+        mvc.perform(post("/pedidos/p1/desconto").with(user("gestor").roles("GERENTE")).with(csrf())
+                .param("tipoDesconto","SEM_DESCONTO").param("descontoInformado","0"))
+                .andExpect(redirectedUrl("/pedidos/p1")).andExpect(flash().attribute("sucesso","Desconto removido."));
+        verify(pedidos).aplicarDesconto(eq("p1"),eq(Pedido.TipoDesconto.SEM_DESCONTO),eq(BigDecimal.ZERO),any());
+    }
 }

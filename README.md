@@ -1,71 +1,127 @@
 # Pediu Patrão
 
-## Descrição
+Sistema de pedidos de pizzaria em Java 21, Spring Boot 3.4.4, Spring Security,
+MongoDB e Thymeleaf. Inclui usuários, produtos, clientes, pedidos com múltiplos
+itens, descontos/correções/remoções gerenciais, status, cancelamento e auditoria.
+Dashboard com AdminLTE oficial 3.2.0 e Chart.js 2.9.4 locais.
+Branch de trabalho: `feature/dashboard-administrativo`.
 
-Sistema de gestão de pedidos de uma pizzaria, desenvolvido e evoluído para a disciplina de Análise e Projeto de Software. A atividade inclui controle de usuários, cadastro e acompanhamento de pedidos, descontos, cancelamentos e auditoria.
+## Documentação da entrega
 
-## Tecnologias utilizadas
+- [Requisitos funcionais, não funcionais e perfis](docs/requisitos.md)
+- [APIs, parâmetros, exemplos e erros](docs/api.md)
+- [Testes atuais, evidências, limpeza e roteiro manual](docs/testes.md)
 
-- Java 21
-- Spring Boot 3.4.4
-- Spring Security
-- MongoDB e Spring Data MongoDB
-- Thymeleaf
-- Maven Wrapper
-- HTML, CSS, JavaScript e Bootstrap
-- JUnit 5 e Mockito para testes
+Os documentos históricos e as quatro capturas permanecem em docs. Não representam
+novas execuções. Licenças e avisos dos fornecedores foram preservados.
 
-## Requisitos implementados
+## Executar normalmente no Windows / VS Code
 
-- **RF01:** perfis ADMIN, GERENTE e ATENDENTE, com autorização no backend e proteção contra atribuição indevida de privilégios.
-- **RF02:** pedidos com itens, quantidades, preços, descontos e total calculados no servidor. Os preços utilizados vêm do cadastro de produtos.
-- **RF03:** fluxo `RECEBIDO → EM_PREPARO → PRONTO → SAIU_PARA_ENTREGA/RETIRADO → FINALIZADO`. Entrada e saída registram horário e responsável no backend. Transições inválidas são bloqueadas.
-- **RF04:** desconto somente percentual, limitado a 20% e permitido antes da saída. Somente GERENTE pode aplicar desconto ou cancelar pedido. Cancelamento exige justificativa.
-- **RF05:** auditoria persistente no MongoDB para criação e alterações disponíveis de pedidos, incluindo status, desconto e cancelamento, e alterações de clientes. Registra identidade, perfil, horário, valores anteriores/posteriores e justificativa quando necessária.
+Pré-requisitos: JDK 21 e MongoDB acessível com replica set ou cluster compatível
+com transações. Maven Wrapper incluído; dependências podem precisar de download
+na primeira execução. O JDK instalado nesta máquina é:
+`C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`.
 
-## Principais alterações
-
-- Ajuste das permissões nas rotas, nos services e nas ações exibidas pela interface.
-- Validação de quantidades e cálculo dos valores usando dados confiáveis do servidor.
-- Controle das etapas do pedido, com registro de entrada e saída e compatibilidade de leitura com estados antigos.
-- Restrição de desconto e cancelamento ao GERENTE, inclusive em comparação ao ADMIN.
-- Registro dos campos de cliente que realmente mudaram, incluindo telefone e endereço.
-- Proteção dos registros de auditoria contra alteração por HTTP e filtragem de dados sensíveis na gravação e consulta.
-
-## Como executar
-
-Pré-requisitos:
-
-- JDK 21 instalado, com `JAVA_HOME` e `PATH` configurados.
-- MongoDB disponível e em execução.
-- Acesso à internet na primeira execução para baixar as dependências pelo Maven Wrapper.
-
-Por padrão, a aplicação conecta ao MongoDB em `mongodb://127.0.0.1:27017/pizzaria`. Outra conexão pode ser definida pela variável de ambiente `SPRING_DATA_MONGODB_URI`.
-
-No PowerShell, abra a raiz do projeto, a pasta que contém `pom.xml` e `mvnw.cmd`, e execute:
+Abra PowerShell na pasta interna que contém pom.xml e mvnw.cmd:
 
 ```powershell
-.\mvnw.cmd spring-boot:run
+Set-Location 'C:\Users\Joaozinho\Downloads\PediuPatrao\PediuPatrao'
+.\scripts\iniciar-normal.ps1
 ```
 
-Não é necessário instalar o Maven separadamente, pois o projeto possui o wrapper.
-
-## Testes
-
-Na mesma pasta, execute:
+Se a política local impedir scripts, sem alterar a política permanente:
 
 ```powershell
-.\mvnw.cmd test
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/iniciar-normal.ps1
 ```
 
-A validação final possui 69 testes automatizados passando. Eles verificam permissões, cálculo dos pedidos, transições, descontos, cancelamentos, auditoria e renderização das páginas. Os testes usam dados simulados, sem alterar o MongoDB existente.
+O script fixa Java 21 para Maven/aplicação e restaura o ambiente do terminal ao
+terminar. Não inicia Chrome, não cria MongoDB, não encerra serviços de outros
+projetos e não executa fixtures, testes ou apresentação. Usa application.properties
+original e respeita `SPRING_DATA_MONGODB_URI`, `SERVER_PORT` e demais configurações
+externas. Login padrão: **http://localhost:8080/login**; dashboard: **/dashboard**
+com conta ADMIN existente. Se SERVER_PORT for diferente, ajustar a URL.
+Encerrar a execução normal com Ctrl+C no próprio terminal.
 
-## Acesso
+Para verificar apenas Java/configuração, sem conectar ao banco:
 
-Após iniciar a aplicação, acesse `http://localhost:8080`. O login utiliza uma conta já cadastrada no sistema.
+```powershell
+.\scripts\iniciar-normal.ps1 -VerificarAmbiente
+```
 
-## Perfis
+Também é possível executar Maven diretamente, fixando o JDK:
 
-- **ADMIN:** administra usuários e atribui perfis, consulta pedidos e visualiza auditoria. Não pode aplicar desconto nem cancelar pedidos.
-- **GERENTE:** gerencia pedidos, aplica descontos, cancela pedidos com justificativa, consulta clientes e visualiza auditoria.
-- **ATENDENTE:** cria e atualiza clientes, registra pedidos e acompanha seu andamento. Mantém o avanço das etapas permitido pelo fluxo existente, sem acesso a desconto, cancelamento ou auditoria.
+```powershell
+$env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot'
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
+.\mvnw.cmd "-Dmaven.repo.local=$env:USERPROFILE\.m2\repository" spring-boot:run
+```
+
+## MongoDB e autenticação
+
+A URI original não foi alterada. Defina SPRING_DATA_MONGODB_URI externamente se
+precisar de outra conexão autorizada; não grave senhas no código ou Git. O nome
+replicaSet na URI precisa corresponder à topologia real: adicioná-lo à string
+não converte um servidor standalone.
+
+Antes dos inicializadores, a aplicação faz somente `hello` para conferir topologia.
+Servidor indisponível ou standalone provoca erro explicativo antes da inicialização
+de dados. Pedidos/auditoria compartilham transação: não há fallback para gravações
+independentes. O responsável informa o banco original na porta 27017, replica set
+`rs0`. Ele não foi acessado nem reconfigurado nesta revisão; a validação executada
+usou exclusivamente outro replica set, descartável, na porta 27028.
+
+Se o banco existente for standalone, a infraestrutura precisa ser preparada pelo
+responsável: backup verificado e configuração/migração controlada para replica set,
+sem apagar ou sobrescrever os dados. Esta entrega não faz essa alteração automática.
+
+O bootstrap ADMIN continua desativado por padrão. Se não houver conta, sua ativação
+é uma etapa explícita e externa com `APP_BOOTSTRAP_ADMIN_ENABLED=true`,
+`APP_BOOTSTRAP_ADMIN_USERNAME` e `APP_BOOTSTRAP_ADMIN_PASSWORD`. Não há senha padrão. Contas existentes não são
+promovidas, reativadas nem têm senha alterada. Desabilitar o bootstrap após uso.
+
+## Funcionalidades e perfis
+
+ADMIN administra usuários/produtos, consulta pedidos/auditoria e acessa o dashboard.
+GERENTE registra pedidos e autoriza descontos/cancelamentos. ATENDENTE cadastra
+clientes, registra pedidos e acompanha status sem privilégios gerenciais.
+
+No detalhe do pedido, GERENTE ativo pode corrigir o percentual existente ou usar
+**Remover desconto**, com confirmação. O total volta ao subtotal mais entrega;
+campos de desconto são zerados e itens/preços históricos preservados. Operações
+só são aceitas antes da saída/retirada, até 20%, com até duas casas decimais no
+percentual, CSRF e auditoria transacional.
+O dashboard consulta os valores persistidos ao atualizar; não usa dados fixos.
+
+## Testes e modo isolado opcional
+
+```powershell
+.\mvnw.cmd "-Dmaven.repo.local=$env:USERPROFILE\.m2\repository" test
+node --test src/test/js/dashboard.test.cjs
+```
+
+Executar Maven com Java 21. Três integrações são opt-in e nunca devem apontar para
+o banco original. Comandos e resultados efetivamente executados: [docs/testes.md](docs/testes.md).
+O modo normal não depende de Node, Chrome ou scripts de teste; esses componentes
+são necessários somente para validação de interface e demonstração isolada.
+
+Para testes pessoais com MongoDB novo e dados sintéticos explicitamente identificados:
+
+```powershell
+.\scripts\iniciar-teste-manual.ps1
+```
+
+Esse modo é opcional, separado da execução normal. O roteiro explica contas próprias
+de teste, troca de perfis e encerramento. Não usar seus dados como vendas reais.
+
+## Estrutura
+
+- src/main/java: controllers, serviços, modelos, repositórios e segurança/configuração.
+- src/main/resources: configuração normal, templates e assets/licenças oficiais.
+- src/test: regressões, integrações opt-in e automação de navegador.
+- scripts: inicialização normal com Java 21 e validações isoladas opcionais.
+- docs: entrega acadêmica e evidências preservadas.
+- target: build/logs/bases locais ignorados no Git; não publicar.
+
+As alterações foram organizadas em cinco commits locais na branch indicada.
+Não houve push, pull, merge, rebase ou deploy; main foi preservada.

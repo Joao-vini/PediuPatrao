@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -47,10 +48,12 @@ public class PedidoService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public Pedido criarPedido(Pedido pedido, Authentication authentication) {
         return criarPedido(pedido, null, null, authentication);
     }
 
+    @Transactional
     public Pedido criarPedido(Pedido pedido, String usuarioGerente, String senhaGerente,
                               Authentication authentication) {
         if (pedido == null) throw erro(HttpStatus.BAD_REQUEST, "Os dados do pedido são obrigatórios.");
@@ -102,7 +105,7 @@ public class PedidoService {
         BigDecimal desconto = calcularDesconto(tipoDesconto, descontoInformado, base);
         Usuario gerenteAutorizador = null;
         if (desconto.signum() > 0) {
-            gerenteAutorizador = validarCredenciaisGerente(usuarioGerente, senhaGerente);
+            gerenteAutorizador = autorizarOperacaoGerencial(usuarioGerente, senhaGerente, authentication);
         }
         BigDecimal total = base.subtract(desconto).setScale(2, RoundingMode.HALF_UP);
 
@@ -189,8 +192,7 @@ public class PedidoService {
             List<String> produtoIds, List<Integer> quantidades, Pedido.TipoPedido tipoPedido,
             BigDecimal taxaEntrega, Pedido.TipoDesconto tipoDesconto, BigDecimal valorDesconto,
             String usuarioGerente, String senhaGerente, Authentication authentication) {
-        exigirGerente(authentication);
-        validarCredenciaisGerente(usuarioGerente, senhaGerente);
+        autorizarOperacaoGerencial(usuarioGerente, senhaGerente, authentication);
         if (produtoIds == null || quantidades == null || produtoIds.isEmpty()
                 || produtoIds.size() != quantidades.size()) {
             throw erro(HttpStatus.BAD_REQUEST, "Informe produtos e quantidades válidos.");
@@ -253,6 +255,7 @@ public class PedidoService {
                 .orElseThrow(() -> erro(HttpStatus.NOT_FOUND, "Pedido não encontrado."));
     }
 
+    @Transactional
     public Pedido atualizarStatus(String id, String status, Authentication authentication) {
         validarAutenticacao(authentication);
         exigirPerfilOperacional(authentication);
@@ -307,6 +310,7 @@ public class PedidoService {
         return "PRONTO".equals(status);
     }
 
+    @Transactional
     public void excluir(String id, Authentication authentication) {
         exigirGerente(authentication);
         Pedido pedido = buscarPorId(id);
@@ -320,20 +324,30 @@ public class PedidoService {
         pedidoRepository.delete(pedido);
     }
 
+    @Transactional
     public Pedido aplicarDesconto(String id, BigDecimal percentual, Authentication authentication) {
         return aplicarDesconto(id, Pedido.TipoDesconto.PERCENTUAL, percentual, authentication);
     }
 
+    @Transactional
+    public Pedido removerDesconto(String id, Authentication authentication) {
+        return aplicarDesconto(id, Pedido.TipoDesconto.SEM_DESCONTO, ZERO, authentication);
+    }
+
+    @Transactional
     public Pedido aplicarDesconto(String id, Pedido.TipoDesconto tipo, BigDecimal valor,
                                   Authentication authentication) {
-        exigirGerente(authentication);
+        exigirGerenteAtivo(authentication);
         Pedido pedido = buscarPorId(id);
         exigirAntesDaSaida(pedido);
+        if (tipo == null) tipo = Pedido.TipoDesconto.SEM_DESCONTO;
         BigDecimal subtotal = obterSubtotal(pedido);
         BigDecimal taxa = valorOuZero(pedido.getTaxaEntrega());
         BigDecimal base = subtotal.add(taxa);
         Map<String, String> anteriores = snapshotDesconto(pedido);
+        boolean tinhaDesconto = pedido.getValorDesconto() != null && pedido.getValorDesconto().signum() > 0;
         BigDecimal desconto = calcularDesconto(tipo, valor, base);
+        if (tipo == Pedido.TipoDesconto.SEM_DESCONTO || desconto.signum() == 0) tipo = Pedido.TipoDesconto.SEM_DESCONTO;
         pedido.setTipoDesconto(tipo);
         pedido.setDescontoInformado(tipo == Pedido.TipoDesconto.SEM_DESCONTO ? ZERO : arredondar(valor));
         pedido.setDescontoPercentual(tipo == Pedido.TipoDesconto.PERCENTUAL
@@ -342,7 +356,9 @@ public class PedidoService {
         pedido.setValorTotal(base.subtract(desconto).setScale(2, RoundingMode.HALF_UP));
         atualizarTroco(pedido);
         Pedido salvo = pedidoRepository.save(pedido);
-        auditoriaService.registrar(authentication, "DESCONTO_APLICADO", "PEDIDO", id,
+        String operacao = tipo == Pedido.TipoDesconto.SEM_DESCONTO ? "DESCONTO_REMOVIDO"
+                : tinhaDesconto ? "DESCONTO_SUBSTITUIDO" : "DESCONTO_APLICADO";
+        auditoriaService.registrar(authentication, operacao, "PEDIDO", id,
                 anteriores, snapshotDesconto(salvo), null);
         return salvo;
     }
@@ -356,13 +372,15 @@ public class PedidoService {
                 : pedido.getDescontoPercentual().toPlainString());
         valores.put("valorDesconto", pedido.getValorDesconto() == null ? "" : pedido.getValorDesconto().toPlainString());
         valores.put("valorTotal", pedido.getValorTotal() == null ? "" : pedido.getValorTotal().toPlainString());
+        valores.put("trocoPara", pedido.getTrocoPara() == null ? "" : pedido.getTrocoPara().toPlainString());
+        valores.put("valorTroco", pedido.getValorTroco() == null ? "" : pedido.getValorTroco().toPlainString());
         return valores;
     }
 
+    @Transactional
     public Pedido cancelar(String id, String justificativa, String usuarioGerente,
                            String senhaGerente, Authentication authentication) {
-        exigirGerente(authentication);
-        Usuario gerente = validarCredenciaisGerente(usuarioGerente, senhaGerente);
+        Usuario gerente = autorizarOperacaoGerencial(usuarioGerente, senhaGerente, authentication);
         Pedido pedido = buscarPorId(id);
         if (!podeCancelar(pedido)) {
             throw erro(HttpStatus.BAD_REQUEST, "Este pedido não pode mais ser cancelado.");
@@ -393,6 +411,9 @@ public class PedidoService {
             throw erro(HttpStatus.BAD_REQUEST, "Somente desconto percentual é permitido.");
         }
         if (valor == null || valor.signum() < 0) throw erro(HttpStatus.BAD_REQUEST, "O desconto não pode ser negativo.");
+        if (valor.stripTrailingZeros().scale() > 2) {
+            throw erro(HttpStatus.BAD_REQUEST, "Informe um percentual com até duas casas decimais.");
+        }
         if (valor.compareTo(PERCENTUAL_MAXIMO) > 0) {
             throw erro(HttpStatus.BAD_REQUEST, "O desconto percentual não pode ultrapassar 20%.");
         }
@@ -442,13 +463,26 @@ public class PedidoService {
         }
     }
 
+    private void exigirGerenteAtivo(Authentication authentication) {
+        exigirGerente(authentication);
+        Usuario gerente = usuarioRepository.findByUsername(authentication.getName()).orElse(null);
+        if (gerente == null || !gerente.isAtivo() || !"GERENTE".equals(gerente.getRole())) {
+            throw erro(HttpStatus.FORBIDDEN, "A conta deve continuar ativa e com perfil GERENTE para alterar descontos.");
+        }
+    }
+
+    private Usuario autorizarOperacaoGerencial(String username, String password, Authentication authentication) {
+        exigirGerente(authentication);
+        return validarCredenciaisGerente(username, password);
+    }
+
     private Usuario validarCredenciaisGerente(String username, String password) {
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
             throw erro(HttpStatus.FORBIDDEN,
                     "Não foi possível autorizar a operação. Verifique as credenciais do gerente.");
         }
         Usuario gerente = usuarioRepository.findByUsername(username.trim()).orElse(null);
-        if (gerente == null || !"GERENTE".equals(gerente.getRole()) || gerente.getPassword() == null
+        if (gerente == null || !gerente.isAtivo() || !"GERENTE".equals(gerente.getRole()) || gerente.getPassword() == null
                 || !passwordEncoder.matches(password, gerente.getPassword())) {
             throw erro(HttpStatus.FORBIDDEN,
                     "Não foi possível autorizar a operação. Verifique as credenciais do gerente.");
@@ -480,8 +514,7 @@ public class PedidoService {
         adicionarEndereco(partes, cliente.getCidade());
         adicionarEndereco(partes, cliente.getEstado());
         adicionarEndereco(partes, cliente.getCep());
-        String endereco = partes.isEmpty() ? limpar(cliente.getEndereco()) : String.join(", ", partes);
-        return endereco;
+        return partes.isEmpty() ? limpar(cliente.getEndereco()) : String.join(", ", partes);
     }
 
     private void adicionarEndereco(List<String> partes, String valor) {

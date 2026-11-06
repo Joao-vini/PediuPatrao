@@ -57,7 +57,48 @@ class PedidoRF04Test {
         return gerente;
     }
 
+    private void gerenteAtivo() {
+        Usuario u = new Usuario(); u.setUsername("gestor"); u.setRole("GERENTE"); u.setAtivo(true);
+        when(usuarios.findByUsername("gestor")).thenReturn(Optional.of(u));
+    }
+
+    @Test void gerenteDesativadoNaoAutorizaMesmoComSenhaCorreta() {
+        Usuario gerente = new Usuario();
+        gerente.setRole("GERENTE");
+        gerente.setPassword("hash");
+        gerente.setAtivo(false);
+        when(usuarios.findByUsername("gestor")).thenReturn(Optional.of(gerente));
+        assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException.class,
+                () -> service.autorizarDescontoNovoPedido(List.of("prod1"), List.of(1),
+                        Pedido.TipoPedido.RETIRADA, BigDecimal.ZERO, Pedido.TipoDesconto.PERCENTUAL,
+                        BigDecimal.TEN, "gestor", "senha", auth("GERENTE"))).getStatusCode());
+        verifyNoInteractions(pedidos, clientes, produtos, auditoria, encoder);
+    }
+
+    @Test void gerenteDesativadoNaoAutorizaCancelamentoAntesDeLerPedido() {
+        Usuario inativo = new Usuario();
+        inativo.setRole("GERENTE");
+        inativo.setPassword("hash");
+        inativo.setAtivo(false);
+        when(usuarios.findByUsername("gestor")).thenReturn(Optional.of(inativo));
+        assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException.class,
+                () -> service.cancelar("p1", "Motivo de teste", "gestor", "senha", auth("GERENTE"))).getStatusCode());
+        verifyNoInteractions(pedidos, clientes, produtos, auditoria, encoder);
+    }
+
+    @Test void credenciaisAusentesNaoConsultamBancoEmPreviaOuCancelamento() {
+        for (String[] dados : new String[][]{{null,null},{"","senha"},{"gestor"," "}}) {
+            assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException.class,
+                    () -> service.autorizarDescontoNovoPedido(List.of("prod1"), List.of(1), Pedido.TipoPedido.RETIRADA,
+                            BigDecimal.ZERO, Pedido.TipoDesconto.PERCENTUAL, BigDecimal.TEN, dados[0], dados[1], auth("GERENTE"))).getStatusCode());
+            assertEquals(HttpStatus.FORBIDDEN, assertThrows(ResponseStatusException.class,
+                    () -> service.cancelar("p1", "Motivo de teste", dados[0], dados[1], auth("GERENTE"))).getStatusCode());
+        }
+        verifyNoInteractions(pedidos, clientes, produtos, usuarios, auditoria, encoder);
+    }
+
     @Test void gerenteAplicaVintePorCentoAntesDaSaidaComAuditoria() {
+        gerenteAtivo();
         Pedido p = pedido("PRONTO_PARA_RETIRADA");
         when(pedidos.save(p)).thenReturn(p);
         Authentication gerente = auth("GERENTE");
@@ -106,6 +147,7 @@ class PedidoRF04Test {
     }
 
     @Test void rejeitaPercentualNegativoAcimaDeVinteOuAusente() {
+        gerenteAtivo();
         pedido("EM_PREPARO");
         for (BigDecimal percentual : new BigDecimal[]{new BigDecimal("-0.01"), new BigDecimal("20.01"), null}) {
             assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ResponseStatusException.class,
@@ -115,7 +157,18 @@ class PedidoRF04Test {
         verifyNoInteractions(auditoria);
     }
 
+    @Test void percentualComPrecisaoNaoRepresentavelNaoEhCalculadoNemPersistido() {
+        gerenteAtivo();pedido("RECEBIDO");
+        for(BigDecimal percentual:List.of(new BigDecimal("0.001"),new BigDecimal("1.234"))) {
+            var erro=assertThrows(ResponseStatusException.class,()->service.aplicarDesconto("p1",percentual,auth("GERENTE")));
+            assertEquals(HttpStatus.BAD_REQUEST,erro.getStatusCode());
+            assertTrue(erro.getReason().contains("duas casas"));
+        }
+        verify(pedidos,never()).save(any());verifyNoInteractions(auditoria);
+    }
+
     @Test void rejeitaDescontoEmValorSemImpedirLeituraDoTipoLegado() {
+        gerenteAtivo();
         Pedido p = pedido("EM_PREPARO");
         p.setTipoDesconto(Pedido.TipoDesconto.VALOR);
         assertSame(p, service.buscarPorId("p1"));
@@ -126,6 +179,7 @@ class PedidoRF04Test {
     }
 
     @Test void descontoRecusadoDepoisDaSaidaRetiradaOuCancelamento() {
+        gerenteAtivo();
         for (String status : new String[]{"SAIU_PARA_ENTREGA", "RETIRADO", "FINALIZADO", "CANCELADO", null}) {
             pedido(status);
             assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ResponseStatusException.class,
@@ -144,6 +198,67 @@ class PedidoRF04Test {
         }
         verify(pedidos, never()).save(any());
         verifyNoInteractions(auditoria);
+    }
+
+    @Test void removerZeraDescontoRestauraEntregaETrocoSemMudarItens() {
+        gerenteAtivo(); Pedido p = pedido("PRONTO");
+        p.setTipoDesconto(Pedido.TipoDesconto.PERCENTUAL); p.setDescontoInformado(BigDecimal.TEN);
+        p.setDescontoPercentual(BigDecimal.TEN); p.setValorDesconto(new BigDecimal("10.50"));
+        p.setValorTotal(new BigDecimal("94.50")); p.setTaxaEntrega(new BigDecimal("5.00"));
+        p.setFormaPagamento(Pedido.FormaPagamento.DINHEIRO); p.setTrocoPara(new BigDecimal("200.00"));
+        p.setValorTroco(new BigDecimal("105.50"));
+        List<Pedido.ItemPedido> itens = List.of(new Pedido.ItemPedido()); p.setItens(itens);
+        when(pedidos.save(p)).thenReturn(p);
+        service.removerDesconto("p1",auth("GERENTE"));
+        assertEquals(new BigDecimal("105.00"),p.getValorTotal()); assertSame(itens,p.getItens());
+        assertEquals(new BigDecimal("95.00"),p.getValorTroco());
+        assertEquals(Pedido.TipoDesconto.SEM_DESCONTO,p.getTipoDesconto());
+        assertEquals(new BigDecimal("0.00"),p.getDescontoInformado());
+        assertEquals(new BigDecimal("0.00"),p.getDescontoPercentual());
+        assertEquals(new BigDecimal("0.00"),p.getValorDesconto());
+        verify(auditoria).registrar(any(),eq("DESCONTO_REMOVIDO"),eq("PEDIDO"),eq("p1"),
+                argThat(m -> "94.50".equals(m.get("valorTotal")) && "105.50".equals(m.get("valorTroco"))),
+                argThat(m -> "105.00".equals(m.get("valorTotal")) && "95.00".equals(m.get("valorTroco"))),isNull());
+    }
+
+    @Test void substituirRecalculaSobreBaseOriginalSemDescontoEmCascata() {
+        gerenteAtivo(); Pedido p=pedido("RECEBIDO"); p.setTipoDesconto(Pedido.TipoDesconto.PERCENTUAL);
+        p.setValorDesconto(new BigDecimal("20.00")); p.setValorTotal(new BigDecimal("80.00"));
+        when(pedidos.save(p)).thenReturn(p);
+        service.aplicarDesconto("p1",new BigDecimal("5"),auth("GERENTE"));
+        assertEquals(new BigDecimal("95.00"),p.getValorTotal()); assertEquals(new BigDecimal("5.00"),p.getValorDesconto());
+        verify(auditoria).registrar(any(),eq("DESCONTO_SUBSTITUIDO"),eq("PEDIDO"),eq("p1"),anyMap(),anyMap(),isNull());
+    }
+
+    @Test void sessaoGerencialDesativadaNaoCorrigeNemRemove() {
+        Usuario u=new Usuario();u.setRole("GERENTE");u.setAtivo(false);
+        when(usuarios.findByUsername("gestor")).thenReturn(Optional.of(u));
+        assertEquals(HttpStatus.FORBIDDEN,assertThrows(ResponseStatusException.class,
+                () -> service.removerDesconto("p1",auth("GERENTE"))).getStatusCode());
+        assertEquals(HttpStatus.FORBIDDEN,assertThrows(ResponseStatusException.class,
+                () -> service.aplicarDesconto("p1",BigDecimal.TEN,auth("GERENTE"))).getStatusCode());
+        verifyNoInteractions(pedidos,auditoria);
+    }
+
+    @Test void removerBloqueiaOutrosPerfisEEstadosConcluidos() {
+        for(String perfil:List.of("ADMIN","ATENDENTE")) assertEquals(HttpStatus.FORBIDDEN,
+                assertThrows(ResponseStatusException.class,()->service.removerDesconto("p1",auth(perfil))).getStatusCode());
+        verifyNoInteractions(usuarios,pedidos);
+        gerenteAtivo();
+        for(String status:List.of("CANCELADO","FINALIZADO","RETIRADO","SAIU_PARA_ENTREGA")) {
+            pedido(status);
+            assertEquals(HttpStatus.BAD_REQUEST,assertThrows(ResponseStatusException.class,
+                    ()->service.removerDesconto("p1",auth("GERENTE"))).getStatusCode());
+        }
+        verify(pedidos,never()).save(any());verifyNoInteractions(auditoria);
+    }
+
+    @Test void removerNaoPersisteQuandoValorRecebidoNaoCobreTotalRestaurado() {
+        gerenteAtivo();Pedido p=pedido("PRONTO");p.setFormaPagamento(Pedido.FormaPagamento.DINHEIRO);
+        p.setTrocoPara(new BigDecimal("90.00"));p.setValorDesconto(BigDecimal.TEN);
+        assertEquals(HttpStatus.BAD_REQUEST,assertThrows(ResponseStatusException.class,
+                ()->service.removerDesconto("p1",auth("GERENTE"))).getStatusCode());
+        verify(pedidos,never()).save(any());verifyNoInteractions(auditoria);
     }
 
     @Test void gerenteCriaPedidoComDescontoPercentualAuditado() {

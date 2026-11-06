@@ -326,7 +326,8 @@ public class HomeController {
                                         Authentication authentication, RedirectAttributes redirectAttributes) {
         try {
             pedidoService.aplicarDesconto(id, tipoDesconto, descontoInformado, authentication);
-            redirectAttributes.addFlashAttribute("sucesso", "Desconto aplicado.");
+            redirectAttributes.addFlashAttribute("sucesso", tipoDesconto == Pedido.TipoDesconto.SEM_DESCONTO
+                    ? "Desconto removido." : "Desconto atualizado.");
         } catch (ResponseStatusException e) {
             redirectAttributes.addFlashAttribute("erro", e.getReason());
         }

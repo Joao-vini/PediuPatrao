@@ -133,12 +133,18 @@
                             <label class="form-label">Tipo de desconto</label>
                             <select name="tipoDesconto" class="form-select" required>
                                 <option value="PERCENTUAL">Percentual (%)</option>
-                                <option value="SEM_DESCONTO">Remover desconto</option>
                             </select>
                         </div>
                         <div class="col-md-3"><label class="form-label">Percentual (até 20%)</label>
-                            <input id="descontoDetalhe" type="number" name="descontoInformado" min="0" max="20" step="0.01" value="0" class="form-control" required></div>
-                        <div class="col-auto"><button type="submit" class="btn btn-outline-success">Aplicar desconto</button></div>
+                            <input id="descontoDetalhe" type="number" name="descontoInformado" min="0" max="20" step="0.01" th:value="${pedido.descontoInformado != null ? pedido.descontoInformado : 0}" class="form-control" required></div>
+                        <div class="col-auto"><button type="submit" class="btn btn-outline-success" th:text="${pedido.valorDesconto != null and pedido.valorDesconto.signum() > 0 ? 'Corrigir desconto' : 'Aplicar desconto'}">Aplicar desconto</button></div>
+                    </form>
+                    <form th:if="${pedido.valorDesconto != null and pedido.valorDesconto.signum() > 0}"
+                          th:action="@{/pedidos/{id}/desconto(id=${pedido.id})}" method="post"
+                          onsubmit="return confirm('Remover o desconto e restaurar o total original deste pedido?');">
+                        <input type="hidden" name="tipoDesconto" value="SEM_DESCONTO">
+                        <input type="hidden" name="descontoInformado" value="0">
+                        <button type="submit" class="btn btn-outline-warning">Remover desconto</button>
                     </form>
                     <form th:action="@{/pedidos/{id}/cancelamento(id=${pedido.id})}" method="post" class="row g-2 align-items-end">
                         <div class="col-md-8"><label class="form-label">Motivo do cancelamento</label>

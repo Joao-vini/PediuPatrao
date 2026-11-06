@@ -1,1 +1,13 @@
 /target/
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.pid
+/logs/
+/.local/
+*.hprof
+*.jfr
+Thumbs.db
+.DS_Store

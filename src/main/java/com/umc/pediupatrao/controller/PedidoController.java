@@ -47,6 +47,11 @@ public class PedidoController {
                            Authentication authentication) {
         return pedidoService.cancelar(id, justificativa, usuarioGerente, senhaGerente, authentication);
     }
+
+    @DeleteMapping("/{id}/desconto")
+    public Pedido removerDesconto(@PathVariable String id, Authentication authentication) {
+        return pedidoService.removerDesconto(id, authentication);
+    }
     
     
 }

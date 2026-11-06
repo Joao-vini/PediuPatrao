@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR"><body>
+<section th:fragment="content" class="dashboard" aria-labelledby="dashboard-titulo">
+    <header class="content-header dash-header"><div><p class="dash-eyebrow">PEDIU PATRÃO / ADMINISTRAÇÃO</p>
+        <h1 id="dashboard-titulo">Visão de vendas</h1><p class="text-muted">Acompanhe os pedidos e o desempenho do seu negócio.</p></div>
+        <span class="badge badge-light p-3">Dados dos pedidos · São Paulo</span></header>
+    <div class="content">
+    <div class="card card-outline card-success"><div class="card-body">
+    <form id="dashboard-filtros" class="dash-filtros">
+        <label>Data inicial<input class="form-control" type="date" name="inicio" required></label>
+        <label>Data final<input class="form-control" type="date" name="fim" required></label>
+        <label>Situação<select class="form-control" name="status"><option value="">Todas</option><option value="RECEBIDO">Recebido</option><option value="EM_PREPARO">Em preparo</option><option value="EM_PREPARACAO">Em preparação</option><option value="PRONTO">Pronto</option><option value="PRONTO_PARA_RETIRADA">Pronto para retirada</option><option value="SAIU_PARA_ENTREGA">Saiu para entrega</option><option value="RETIRADO">Retirado</option><option value="FINALIZADO">Finalizado</option><option value="CANCELADO">Cancelado</option><option value="SEM_STATUS">Sem status</option></select></label>
+        <label>Tipo<select class="form-control" name="tipo"><option value="">Todos</option><option value="ENTREGA">Entrega</option><option value="RETIRADA">Retirada</option><option value="BALCAO">Balcão</option></select></label>
+        <button type="submit" class="btn btn-success"><i class="fas fa-sync-alt mr-2" aria-hidden="true"></i>Atualizar dados</button>
+    </form></div></div>
+    <p id="dashboard-mensagem" role="status" aria-live="polite"></p>
+    <div id="dashboard-carregando" class="text-center p-4" hidden><i class="fas fa-spinner fa-spin fa-2x text-success" aria-hidden="true"></i><span class="d-block mt-2">Consultando pedidos…</span></div>
+    <div id="dashboard-resultados" hidden>
+        <div class="row">
+            <div class="col-xl-3 col-sm-6"><article class="small-box bg-success"><div class="inner"><p>Faturamento líquido de descontos</p><h2 id="dash-faturamento"></h2><small>Inclui entrega; exclui cancelados</small></div><div class="icon"><i class="fas fa-wallet" aria-hidden="true"></i></div></article></div>
+            <div class="col-xl-3 col-sm-6"><article class="small-box bg-white"><div class="inner"><p>Pedidos no período</p><h2 id="dash-pedidos"></h2><small id="dash-cancelados"></small></div><div class="icon"><i class="fas fa-receipt" aria-hidden="true"></i></div></article></div>
+            <div class="col-xl-3 col-sm-6"><article class="small-box bg-white"><div class="inner"><p>Ticket médio</p><h2 id="dash-ticket"></h2><small>Por pedido válido, não cancelado</small></div><div class="icon"><i class="fas fa-chart-line" aria-hidden="true"></i></div></article></div>
+            <div class="col-xl-3 col-sm-6"><article class="small-box bg-white"><div class="inner"><p>Descontos concedidos</p><h2 id="dash-descontos"></h2><small>Nos pedidos incluídos no faturamento</small></div><div class="icon"><i class="fas fa-tags" aria-hidden="true"></i></div></article></div>
+        </div>
+        <article class="card card-outline card-success"><div class="card-header"><h2 class="card-title">Evolução diária das vendas</h2><div class="card-tools"><button class="btn btn-tool" type="button" data-card-widget="collapse" aria-label="Recolher ou expandir vendas"><i class="fas fa-minus" aria-hidden="true"></i></button></div></div><div class="card-body">
+            <p class="text-muted text-sm">Passe o cursor sobre o gráfico para consultar os valores. O faturamento usa a data de criação do pedido.</p>
+            <div class="dash-chart"><canvas id="dash-vendas-grafico" role="img" aria-label="Gráfico interativo de faturamento diário; valores na tabela abaixo"></canvas></div>
+            <p id="dash-comparacao" class="dash-comparacao"></p>
+            <details><summary>Consultar valores e resumo de pedidos por dia</summary><div class="table-responsive"><table class="table table-striped table-sm"><caption>Faturamento e pedidos válidos por dia</caption><thead><tr><th scope="col">Data</th><th scope="col">Pedidos válidos</th><th scope="col">Faturamento</th></tr></thead><tbody id="dash-dias"></tbody></table></div></details>
+        </div></article>
+        <div class="row"><div class="col-lg-6"><article class="card h-100"><div class="card-header"><h2 class="card-title">Situação dos pedidos</h2></div><div class="card-body"><p class="text-muted text-sm">Status atual de todos os pedidos filtrados, inclusive cancelados.</p><div class="dash-chart dash-chart-small"><canvas id="dash-status-grafico" role="img" aria-label="Distribuição por status; resumo abaixo"></canvas></div><div id="dash-status"></div></div></article></div>
+        <div class="col-lg-6"><article class="card h-100"><div class="card-header"><h2 class="card-title">Distribuição por tipo</h2></div><div class="card-body"><p class="text-muted text-sm">Todos os pedidos filtrados, inclusive cancelados e sem valor.</p><div class="dash-chart dash-chart-small"><canvas id="dash-tipos-grafico" role="img" aria-label="Distribuição por tipo de pedido; resumo abaixo"></canvas></div><div id="dash-tipos"></div></div></article></div></div>
+        <article class="card mt-3"><div class="card-header"><h2 class="card-title">Produtos mais vendidos</h2></div><div class="card-body"><p class="text-muted text-sm">Até 10 produtos por quantidade. Valor bruto histórico dos itens, antes de descontos e entrega.</p><div class="table-responsive"><table class="table table-hover"><thead><tr><th scope="col">Produto</th><th scope="col">Unidades</th><th scope="col">Valor bruto</th></tr></thead><tbody id="dash-produtos"></tbody></table></div></div></article>
+        <p class="text-muted text-sm">Faturamento representa pedidos válidos, inclusive em andamento; não comprova recebimento financeiro. Registros sem data ficam fora do período.</p>
+    </div></div>
+</section></body></html>

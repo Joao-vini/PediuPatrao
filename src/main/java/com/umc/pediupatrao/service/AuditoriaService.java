@@ -38,7 +38,9 @@ public class AuditoriaService {
             Map.entry("EXCLUSAO", "Exclusão"), Map.entry("PEDIDO_CRIADO", "Pedido criado"),
             Map.entry("STATUS_PEDIDO_ALTERADO", "Status do pedido alterado"),
             Map.entry("PEDIDO_CANCELADO", "Pedido cancelado"), Map.entry("PEDIDO_EXCLUIDO", "Pedido excluído"),
-            Map.entry("DESCONTO_APLICADO", "Desconto aplicado"), Map.entry("USUARIO_ATIVADO", "Usuário ativado"),
+            Map.entry("DESCONTO_APLICADO", "Desconto aplicado"),
+            Map.entry("DESCONTO_SUBSTITUIDO", "Desconto substituído"), Map.entry("DESCONTO_REMOVIDO", "Desconto removido"),
+            Map.entry("USUARIO_ATIVADO", "Usuário ativado"),
             Map.entry("USUARIO_DESATIVADO", "Usuário desativado"), Map.entry("USUARIO_EXCLUIDO", "Usuário excluído"));
     private static final Pattern CAMPO_SENSIVEL = Pattern.compile(
             "senha|password|passwd|pwd|hash|credencia(?:l|is)|credential|token|secret|segredo|authorization|authentication|apikey|accesskey|privatekey|chaveprivada|cookie|session|sessao");

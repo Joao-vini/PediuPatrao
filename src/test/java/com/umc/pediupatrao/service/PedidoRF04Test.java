@@ -57,7 +57,13 @@ class PedidoRF04Test {
         return gerente;
     }
 
+    private void gerenteAtivo() {
+        Usuario u = new Usuario(); u.setUsername("gestor"); u.setRole("GERENTE"); u.setAtivo(true);
+        when(usuarios.findByUsername("gestor")).thenReturn(Optional.of(u));
+    }
+
     @Test void gerenteAplicaVintePorCentoAntesDaSaidaComAuditoria() {
+        gerenteAtivo();
         Pedido p = pedido("PRONTO_PARA_RETIRADA");
         when(pedidos.save(p)).thenReturn(p);
         Authentication gerente = auth("GERENTE");
@@ -106,6 +112,7 @@ class PedidoRF04Test {
     }
 
     @Test void rejeitaPercentualNegativoAcimaDeVinteOuAusente() {
+        gerenteAtivo();
         pedido("EM_PREPARO");
         for (BigDecimal percentual : new BigDecimal[]{new BigDecimal("-0.01"), new BigDecimal("20.01"), null}) {
             assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ResponseStatusException.class,
@@ -116,6 +123,7 @@ class PedidoRF04Test {
     }
 
     @Test void rejeitaDescontoEmValorSemImpedirLeituraDoTipoLegado() {
+        gerenteAtivo();
         Pedido p = pedido("EM_PREPARO");
         p.setTipoDesconto(Pedido.TipoDesconto.VALOR);
         assertSame(p, service.buscarPorId("p1"));
@@ -126,6 +134,7 @@ class PedidoRF04Test {
     }
 
     @Test void descontoRecusadoDepoisDaSaidaRetiradaOuCancelamento() {
+        gerenteAtivo();
         for (String status : new String[]{"SAIU_PARA_ENTREGA", "RETIRADO", "FINALIZADO", "CANCELADO", null}) {
             pedido(status);
             assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ResponseStatusException.class,

@@ -66,8 +66,8 @@ public class AuditoriaService {
         auditoria.setEntidade(entidade);
         auditoria.setEntidadeId(entidadeId);
         // A mesma proteção da consulta também se aplica antes da persistência.
-        auditoria.setValoresAnteriores(Map.copyOf(mapaSeguro(anteriores)));
-        auditoria.setValoresNovos(Map.copyOf(mapaSeguro(novos)));
+        auditoria.setValoresAnteriores(java.util.Collections.unmodifiableMap(mapaSeguro(anteriores)));
+        auditoria.setValoresNovos(java.util.Collections.unmodifiableMap(mapaSeguro(novos)));
         List<String> campos = new ArrayList<>(auditoria.getValoresAnteriores().keySet());
         for (String campo : auditoria.getValoresNovos().keySet()) {
             if (!campos.contains(campo)) campos.add(campo);

@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -47,10 +48,12 @@ public class PedidoService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public Pedido criarPedido(Pedido pedido, Authentication authentication) {
         return criarPedido(pedido, null, null, authentication);
     }
 
+    @Transactional
     public Pedido criarPedido(Pedido pedido, String usuarioGerente, String senhaGerente,
                               Authentication authentication) {
         if (pedido == null) throw erro(HttpStatus.BAD_REQUEST, "Os dados do pedido são obrigatórios.");
@@ -252,6 +255,7 @@ public class PedidoService {
                 .orElseThrow(() -> erro(HttpStatus.NOT_FOUND, "Pedido não encontrado."));
     }
 
+    @Transactional
     public Pedido atualizarStatus(String id, String status, Authentication authentication) {
         validarAutenticacao(authentication);
         exigirPerfilOperacional(authentication);
@@ -306,6 +310,7 @@ public class PedidoService {
         return "PRONTO".equals(status);
     }
 
+    @Transactional
     public void excluir(String id, Authentication authentication) {
         exigirGerente(authentication);
         Pedido pedido = buscarPorId(id);
@@ -319,14 +324,17 @@ public class PedidoService {
         pedidoRepository.delete(pedido);
     }
 
+    @Transactional
     public Pedido aplicarDesconto(String id, BigDecimal percentual, Authentication authentication) {
         return aplicarDesconto(id, Pedido.TipoDesconto.PERCENTUAL, percentual, authentication);
     }
 
+    @Transactional
     public Pedido removerDesconto(String id, Authentication authentication) {
         return aplicarDesconto(id, Pedido.TipoDesconto.SEM_DESCONTO, ZERO, authentication);
     }
 
+    @Transactional
     public Pedido aplicarDesconto(String id, Pedido.TipoDesconto tipo, BigDecimal valor,
                                   Authentication authentication) {
         exigirGerenteAtivo(authentication);
@@ -369,6 +377,7 @@ public class PedidoService {
         return valores;
     }
 
+    @Transactional
     public Pedido cancelar(String id, String justificativa, String usuarioGerente,
                            String senhaGerente, Authentication authentication) {
         Usuario gerente = autorizarOperacaoGerencial(usuarioGerente, senhaGerente, authentication);

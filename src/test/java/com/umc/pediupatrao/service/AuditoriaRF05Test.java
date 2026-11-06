@@ -48,6 +48,23 @@ class AuditoriaRF05Test {
                 List.of(new SimpleGrantedAuthority("ROLE_" + perfil)));
     }
 
+    @Test void auditoriaPreservaNulosSemFalharEMantemCopiaImutavel() {
+        Map<String, String> valores = new java.util.LinkedHashMap<>();
+        valores.put("endereco", null);
+        valores.put("password", "dado que deve ser omitido");
+        auditoria.registrar(auth("operador", "GERENTE"), "ALTERACAO", "CLIENTE", "c1",
+                null, valores, null);
+        Auditoria salvo = evento();
+        assertTrue(salvo.getValoresAnteriores().isEmpty());
+        assertTrue(salvo.getValoresNovos().containsKey("endereco"));
+        assertNull(salvo.getValoresNovos().get("endereco"));
+        assertFalse(salvo.getValoresNovos().containsKey("password"));
+        valores.put("endereco", "alterado");
+        assertNull(salvo.getValoresNovos().get("endereco"));
+        assertThrows(UnsupportedOperationException.class,
+                () -> salvo.getValoresNovos().put("endereco", "alterado"));
+    }
+
     private Auditoria evento() {
         var captura = ArgumentCaptor.forClass(Auditoria.class);
         verify(registros).save(captura.capture());

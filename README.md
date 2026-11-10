@@ -123,5 +123,10 @@ de teste, troca de perfis e encerramento. Não usar seus dados como vendas reais
 - docs: entrega acadêmica e evidências preservadas.
 - target: build/logs/bases locais ignorados no Git; não publicar.
 
-As alterações foram organizadas em cinco commits locais na branch indicada.
-Não houve push, pull, merge, rebase ou deploy; main foi preservada.
+ Apresentação do Dashboard Administrativo
+
+Vídeo demonstrativo do sistema Pediu Patrão, apresentando os indicadores de vendas, gráficos, filtros e integração com a API REST.
+
+Duração: 2 minutos e 45 segundos.
+
+▶️ [Assistir à apresentação do Dashboard Administrativo no YouTube](https://youtu.be/tQbge58183o)
